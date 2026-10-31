@@ -74,14 +74,14 @@ the native creation/filter tests and branch creation can be completed here.
    - `Location Coverage` lists all source location labels in the selected window,
      including labels whose rows may be unresolved.
 
-## Eight categories
+## Nine categories
 
 Pancakes; Fluffy All Day; Drinks; Japanese Eats; Cheesecakes; Pastries;
-Promotions; Add-Ons.
+Promotions; Add-Ons; Sandwiches (added at Cheena's request, 2026-10-31).
 
 `Promotions` deliberately corrects `Pormotions` in the screenshot/reference.
-There is **no ninth category in the pivot**. Unresolved data is not forced into
-one of the eight categories, and is not silently discarded.
+There is **no tenth category in the pivot**. Unresolved data is not forced into
+one of the nine categories, and is not silently discarded.
 
 Reference outline entries are evidence, not universal business rules. In
 particular, regular products versus promotion sales, add-ons versus full dishes,
@@ -154,9 +154,9 @@ source data. No macro is required for filtering or expand/collapse.
 - Unresolved/excluded quantities are outside this denominator and explicitly
   reconciled on `Validation`. A draft is not final until those cases are reviewed.
 - Quarters are calendar quarters, labeled with the year. October is Q4.
-- Source location labels are retained. The input labels include Tucker and
-  Tucker GA; these are not asserted to be different physical stores, or merged
-  without confirmation. The actual input places Miami and Carrollton in SQUARE.
+- Source location labels are retained, except that Square "Fluffy Fluffy Tucker GA"
+  is renamed to the Toast label "Fluffy Fluffy - Tucker" (Cheena confirmed they are
+  the same store, 2026-10-31). The actual input places Miami and Carrollton in SQUARE.
 - No gross sales, net sales, or revenue percentages are invented; those inputs
   are absent from this workbook.
 

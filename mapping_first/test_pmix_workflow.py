@@ -74,6 +74,11 @@ class MappingWorkflowTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     workflow.apply_mapping(self.source, bad, draft=True)
 
+    def test_sandwiches_allowed_and_tucker_label_aliased(self):
+        self.assertIn("Sandwiches", workflow.CATEGORIES)
+        self.assertEqual(workflow.LOCATION_ALIASES["Fluffy Fluffy Tucker GA"],
+                         "Fluffy Fluffy - Tucker")
+
     def test_missing_and_duplicate_mapping_rejected(self):
         with self.assertRaisesRegex(ValueError, "missing"):
             workflow.apply_mapping(self.source, self.mapping.iloc[:1], draft=True)

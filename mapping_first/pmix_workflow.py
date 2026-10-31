@@ -21,8 +21,10 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 CATEGORIES = [
     "Pancakes", "Fluffy All Day", "Drinks", "Japanese Eats",
-    "Cheesecakes", "Pastries", "Promotions", "Add-Ons",
-]
+    "Cheesecakes", "Pastries", "Promotions", "Add-Ons", "Sandwiches",
+]  # Sandwiches added at Cheena's request (2026-10-31); the other eight are unchanged
+# Cheena (2026-10-31): the Square POS Tucker label is the same store as the Toast one.
+LOCATION_ALIASES = {"Fluffy Fluffy Tucker GA": "Fluffy Fluffy - Tucker"}
 SOURCE_COLUMNS = {
     "TOAST": ("Menu Group", "Menu Item", "Sent Date"),
     "SQUARE": ("Category", "Item", "Date"),
@@ -87,7 +89,8 @@ def load_sources(source: Path) -> tuple[dict[str, pd.DataFrame], pd.DataFrame]:
         part = pd.DataFrame({
             "POS Sheet": name, "Source Row": df.index + 2,
             "Source Group": df[group].map(text), "Source Item": df[item],
-            "Location": df["Location"].map(lambda v: text(v).strip()),
+            "Location": df["Location"].map(
+                lambda v: LOCATION_ALIASES.get(text(v).strip(), text(v).strip())),
             "Date": dates.dt.normalize(), "Qty": qty,
         })
         part["Mapping ID"] = [
@@ -271,7 +274,7 @@ def make_mapping(source_path: Path, output: Path) -> dict:
         write_table(writer, "Allowed Categories", pd.DataFrame({"Category": CATEGORIES}))
         ws = writer.sheets["Menu Category"]
         ws.data_validation(1, 4, len(mapping), 4, {
-            "validate": "list", "source": "='Allowed Categories'!$A$2:$A$9",
+            "validate": "list", "source": "='Allowed Categories'!$A$2:$A$%d" % (len(CATEGORIES) + 1),
         })
         ws.data_validation(1, 8, len(mapping), 8, {
             "validate": "list", "source": ["Pending", "Approved", "Excluded"],
@@ -299,7 +302,7 @@ def apply_mapping(source: pd.DataFrame, mapping: pd.DataFrame, draft: bool) -> p
         if row["Review Status"] not in ("Pending", "Approved", "Excluded"):
             raise ValueError(f"Invalid Review Status {row['Review Status']!r}")
         if row["Review Status"] == "Approved" and not row["Category"]:
-            raise ValueError("Approved mappings require one of the eight categories")
+            raise ValueError("Approved mappings require one of the allowed categories")
         if row["Review Status"] == "Excluded" and not text(row["Review Notes"]).strip():
             raise ValueError("Excluded mappings require a reason in Review Notes")
         if row["Category"] and not all(text(row[c]).strip() for c in ("Menu", "Menu group", "Item")):
@@ -331,7 +334,13 @@ def select_window(source: pd.DataFrame, start: str, end: str) -> pd.DataFrame:
     return selected
 
 
+def place(slicer, top, left, width, height) -> None:
+    """Set slicer geometry after creation; keyword arguments to Slicers.Add are ignored."""
+    slicer.Top, slicer.Left, slicer.Width, slicer.Height = top, left, width, height
+
+
 def create_pivot(path: Path, start: str, end: str) -> None:
+    import pythoncom
     import win32com.client
 
     excel = win32com.client.DispatchEx("Excel.Application")
@@ -343,7 +352,7 @@ def create_pivot(path: Path, start: str, end: str) -> None:
         sheet = book.Worksheets("PMIX")
         cache = book.PivotCaches().Create(SourceType=1, SourceData="PMIXData", Version=5)
         pivot = cache.CreatePivotTable(
-            TableDestination=sheet.Range("A10"), TableName="MenuPMIX", DefaultVersion=5,
+            TableDestination=sheet.Range("A16"), TableName="MenuPMIX", DefaultVersion=5,
         )
         pivot.ManualUpdate = True
         for position, field in enumerate(("Location", "Year", "Month", "Date"), 1):
@@ -373,15 +382,11 @@ def create_pivot(path: Path, start: str, end: str) -> None:
         for name, left, width in (("Category", 650, 200), ("Location", 870, 240),
                                   ("Month", 1130, 160)):
             slicer_cache = book.SlicerCaches.Add2(pivot, name)
-            slicer_cache.Slicers.Add(
-                SlicerDestination=sheet, Name="Select" + name, Caption=name,
-                Top=155, Left=left, Width=width, Height=260,
-            )
+            place(slicer_cache.Slicers.Add(sheet, pythoncom.Missing, "Select" + name, name),
+                  155, left, width, 260)
         timeline = book.SlicerCaches.Add2(pivot, "Date", "SelectDateWindow", 2)
-        timeline.Slicers.Add(
-            SlicerDestination=sheet, Name="SaleDateTimeline", Caption="Sale date window",
-            Top=35, Left=650, Width=640, Height=105,
-        )
+        place(timeline.Slicers.Add(sheet, pythoncom.Missing, "SaleDateTimeline", "Sale date window"),
+              35, 650, 640, 105)
         timeline.TimelineState.SetFilterDateRange(start, end)
         sheet.Columns("A:A").ColumnWidth = 48
         sheet.Columns("B:I").ColumnWidth = 14
@@ -422,6 +427,11 @@ def make_report(source_path: Path, mapping_path: Path, output: Path,
         Rows=("Qty", "size"), Net_Qty=("Qty", "sum"),
         First_Date=("Date", "min"), Last_Date=("Date", "max"),
     ).reset_index()
+    by_store = mapped.assign(_exc=mapped["Qty"].where(mapped["Exception Reason"].ne(""), 0)
+                             ).groupby(["POS Sheet", "Location"], dropna=False)["_exc"].sum()
+    coverage["Exception Qty"] = [int(by_store[(a, b)]) for a, b in zip(coverage["POS Sheet"], coverage["Location"])]
+    coverage["Exception %"] = (coverage["Exception Qty"] / coverage["Net_Qty"].where(coverage["Net_Qty"].ne(0))).round(4)
+    exc_pct = float(exceptions["Qty"].sum()) / float(mapped["Qty"].sum()) if mapped["Qty"].sum() else 0.0
     report_data = data.groupby(
         ["Location", "Year", "Quarter", "Category", "Menu", "Menu group", "Item"],
         dropna=False, sort=False,
@@ -438,7 +448,7 @@ def make_report(source_path: Path, mapping_path: Path, output: Path,
         "Selected location labels": mapped["Location"].nunique(),
         "Pct denominator": "Filtered classified net Qty, across visible periods/categories/locations",
         "Measure": "Sum of item Qty, not unique customer orders; returns are retained",
-        "Location policy": "Source labels retained; Tucker and Tucker GA not assumed identical",
+        "Location policy": "Source labels retained, except Square 'Fluffy Fluffy Tucker GA' renamed to the Toast label 'Fluffy Fluffy - Tucker' (confirmed by Cheena)",
         "Category spelling": "Promotions is the corrected spelling of source Pormotions",
         "Output type": "Native PivotTable" if native else "Prepared data only - NOT an interactive report",
     }
@@ -457,8 +467,11 @@ def make_report(source_path: Path, mapping_path: Path, output: Path,
         ws.write(1, 0, f"Window: {start} through {end}, inclusive")
         ws.write(2, 0, "Expand + beside Category, Menu and Menu group for item detail.")
         ws.write(3, 0, "Qty (#) = net item quantity; Qty (%) = share of filtered classified quantity.")
-        ws.write(4, 0, "Unresolved/excluded rows are in Exceptions; see Validation for reconciliation.")
-        ws.freeze_panes(9, 1)
+        ws.write(4, 0, "EXCEPTIONS (not in the PivotTable, not filtered by slicers): "
+                       f"{audit['Exception net Qty']:,} Qty in {audit['Exception rows (not in pivot)']:,} rows "
+                       f"= {exc_pct:.2%} of selected Qty. Per-store figures: Location Coverage sheet.")
+        ws.write(5, 0, "Unresolved/excluded rows are listed in Exceptions; see Validation for reconciliation.")
+        ws.freeze_panes(0, 1)
         fields = ["Location", "Date", "Year", "Period", "Month", "Category", "Menu",
                   "Menu group", "Item", "Qty", "POS Sheet", "Source Row",
                   "Mapping ID", "Review Status"]
