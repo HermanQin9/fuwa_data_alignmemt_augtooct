@@ -16,7 +16,15 @@
 - Do not commit lock files (`~$*`), `__pycache__`, `.pkl` files, or scratch output.
 - Before every push, run `git status` and `git diff --cached --stat` and confirm only code/docs are staged.
 
+## Where things go
+- `Result/` holds the current output only. `mapping_first/` holds code and docs. `versions/` keeps
+  earlier output; move old files there rather than deleting them.
+- Rebuild and check steps are in `mapping_first/README.md`. After changing a mapping rule, rebuild
+  the output, then run `validate_prepared.py` and `verify_result.py` as well as the unit tests.
+
 ## Data rules
 - Do not modify the original source workbooks (`USA PMix.xlsx`, `Quarterly PMIX Report.xlsx`).
-- Mapping changes go in new files; never mark a mapping Approved without the user saying so.
+- Business decisions go in `business_rule` or `mapping_overrides.json`, so a rebuild keeps them.
+- Never mark a mapping Approved without the user saying so.
 - Do not force unknown items into a category to reach zero unmapped.
+- Do not put category-level or store-level Qty in tracked files. The repo is public.

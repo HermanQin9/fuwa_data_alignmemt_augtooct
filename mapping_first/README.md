@@ -1,174 +1,134 @@
 # Mapping-first PMIX workflow
 
-## What changed
+Two stages, so that a category decision is made once and reused:
 
-This is the corrected implementation, isolated from the earlier script and static
-report. The earlier deliverables are preserved in
-[`../versions/2026-10-30-before-mapping-first/`](../versions/2026-10-30-before-mapping-first/).
-Git branch creation is **blocked**, not complete: the session sandbox denied
-execution of the installed Git binary. The intended branch is
-`feature/menu-category-pivot`. A separate folder is not a Git branch.
+1. `map` builds an editable Menu Category master covering every TOAST and SQUARE item.
+2. `report` reads only that saved master and builds a native, filterable Excel PMIX report.
 
-The user approved a **draft using all supplied dates**, with filters to narrow
-the view. The original source and earlier report are not overwritten.
+Finished output goes in [`../Result/`](../Result/). This folder holds code only. Earlier
+outputs are kept in `../versions/`.
 
-### Current build status
+## Current status
 
-- The editable master `USA PMix - Menu Mapping.xlsx` was generated.
-- `USA PMix - Pivot Source.xlsx` is **prepared data only**, not a working pivot.
-- The full report build was attempted, but Excel COM activation was denied by
-  the sandbox. The final interactive `USA PMix - Recategorized.xlsx` **has not
-  been generated or interactively tested** in this folder.
-- The earlier root output is still the earlier static report, not this new
-  implementation's output.
-- The mapping contains 2,102 distinct source identities: 1,664 have draft category
-  suggestions and 438 need resolution. All 2,102 are Pending business review.
-  These are mapping-entry counts, not item-sales row counts.
-- Thirteen regression tests passed. An independent audit compared all **1,542,456
-  original cells**, including value types, in source row order: PASS.
-- All 192,807 item-sales lines and 202,865 net Qty are preserved. The prepared
-  pivot data has 185,121 rows / 194,679 net Qty. The remaining 7,686 rows /
-  8,186 net Qty are explicitly retained in Exceptions, not silently counted
-  as approved categories. These counts do not constitute semantic approval.
-- The output audit corrected nine draft mapping entries affecting **560 source
-  rows / 594 net Qty**. Filled savory croissants now suggest Fluffy All Day;
-  tea-flavored basque cheesecake suggests Cheesecakes; explicit pancake/drink
-  bundles and a buy/get-free offer suggest Promotions. All remain Pending.
-- The expanded verifier also checks all **3,786 detailed Report Data keys**,
-  mapping counts/Qty per identity, year/quarter/month fields, each exception's
-  mapped fields and quantity, and Validation totals: PASS.
-- [`OUTPUT_AUDIT.xlsx`](OUTPUT_AUDIT.xlsx) lists corrected mappings, unresolved
-  entries and context-dependent cases needing review. The previous draft is
-  preserved in
-  [`../versions/2026-10-30-before-output-audit/`](../versions/2026-10-30-before-output-audit/).
+- The report is a **draft**. Mapping entries stay `Pending` until the business marks them
+  `Approved`, and a final build refuses Pending entries.
+- Categories and tests reflect the business decisions of 2026-10-31.
+- Workbooks are not in Git, because this repository is public and they hold store sales data.
 
-The sandbox needs to permit Git under `D:\Software\Github\Git\` and Excel
-automation at `C:\Program Files\Microsoft Office\Root\Office16\EXCEL.EXE` before
-the native creation/filter tests and branch creation can be completed here.
+## Categories
+
+Pancakes; Fluffy All Day; Drinks; Japanese Eats; Cheesecakes; Pastries; Promotions; Add-Ons;
+Sandwiches; Appetizers; Miscellaneous.
+
+`Promotions` deliberately corrects `Pormotions` in the reference. Nothing is forced into a
+category to reach zero unmapped: unknown items stay blank and appear in `Exceptions`.
+
+## How a category is decided
+
+`propose_mapping` applies these in order, and the last match wins:
+
+1. The reference outline in `USA PMix.xlsx`, then the draft keyword rules in `item_hint`.
+2. `mapping_overrides.json`: audit decisions per entry, for items a rule cannot recognise, such
+   as misspelled free text. It is keyed by Mapping ID and holds no sales figures.
+3. `business_rule`: the decisions confirmed on 2026-10-31.
+
+| Decision | Applies to |
+|---|---|
+| Sandwiches | Sandwiches, savory croffles and filled croissants that would be Fluffy All Day |
+| Promotions | Any product sold through a promotion source group |
+| Pastries | Cakes other than cheesecakes, and Mango Pudding |
+| Add-Ons | Ice cream, single pancakes, and chicken sides |
+| Appetizers | Everything in an Appetizer or Appetizers source group |
+| Miscellaneous | Non-menu entries such as gift cards, utensil requests and tests |
+| Blank, `Excluded` | Custom Amount, on purpose, with the reason in Review Notes |
+
+Chicken sides are Spicy Yuzu Chicken Bites, wings, tenders, strips, and chicken in a side source
+group. Bowls, dons, plates, chicken feasts, shareable portions, gyoza and Karaage Chicken stay in
+Japanese Eats.
+
+When a rule changes an entry's category, the entry takes the new category as its Menu, so it does
+not keep the path of the category it left. Sandwiches also keep their reference Menu group.
 
 ## Inputs and outputs
 
-1. Input: `../USA PMix.xlsx`, sheets `TOAST`, `SQUARE`, and the original
-   `Menu Category` reference outline.
-2. Mapping stage: `USA PMix - Menu Mapping.xlsx`.
-   - `Menu Category` is the editable master lookup, built from **both** POS sheets.
-   - One row represents a distinct POS sheet / source group / source item.
-   - All locations contribute to this lookup; `Locations`, `Rows`, and `Net Qty`
-     describe coverage.
-   - Original indented reference paths are available in `Reference Outline`.
-   - Category proposals are **Pending**, not automatically approved.
-3. Reporting stage target: `USA PMix - Recategorized.xlsx` (not built yet).
-   - `PMIX` is a **native Excel PivotTable**, not a static summary.
-   - Rows expand as **Category > Menu > Menu group > Item**.
-   - Columns show year-aware quarters, `Qty (#)` and `Qty (%)`, and totals.
-   - Location, category and month slicers, a date timeline, and year/date
-     report filters recalculate quantities and percentages.
-   - `PMIXData` is the Excel table feeding the pivot.
-   - `Menu Category` is a copy of the exact saved lookup used for that build.
-   - `Report Data` contains Location, Year, Quarter, Category, Menu, Menu group,
-     Item and Qty sold. Category and Location extend the example Data schema.
-   - `TOAST` and `SQUARE` preserve all input rows and original columns.
-     Appended columns identify mapping status and inclusion in the report window.
-   - `Exceptions` preserves unresolved/excluded selected rows outside the pivot.
-   - `Validation` reconciles selected Qty to pivot Qty plus exception Qty.
-   - `Location Coverage` lists all source location labels in the selected window,
-     including labels whose rows may be unresolved.
-
-## Nine categories
-
-Pancakes; Fluffy All Day; Drinks; Japanese Eats; Cheesecakes; Pastries;
-Promotions; Add-Ons; Sandwiches (added at Cheena's request, 2026-10-31).
-
-`Promotions` deliberately corrects `Pormotions` in the screenshot/reference.
-There is **no tenth category in the pivot**. Unresolved data is not forced into
-one of the nine categories, and is not silently discarded.
-
-Reference outline entries are evidence, not universal business rules. In
-particular, regular products versus promotion sales, add-ons versus full dishes,
-ice cream versus cheesecake, and ambiguous open-item descriptions need review.
-Draft suggestions are not a claim of semantic correctness.
+- Input: `../USA PMix.xlsx`, sheets `TOAST`, `SQUARE` and `Menu Category`. It is never modified.
+- `USA PMix - Menu Mapping.xlsx`: `Menu Category` is the editable master, with one row for each
+  POS sheet, source group and source item. `Allowed Categories` feeds the Category dropdown.
+- `USA PMix - PMIX Report DRAFT.xlsx`:
+  - `PMIX` is a native PivotTable. Rows expand as Category > Menu > Menu group > Item, largest
+    first. Columns show `Qty (#)` and `Qty (%)` by year-aware quarter.
+  - Category, Location, Month and Week starting slicers filter the table. Nothing selected in a
+    slicer means everything, so no Location selected shows all locations. There are no page fields
+    and no quarter total columns, because Excel writes those labels in its own interface
+    language. The Total row at the bottom stays.
+  - `By Location` is a second PivotTable with every item in every location, plus an All
+    locations column and row. The same slicers drive both sheets.
+  - `PMIXData` feeds the pivot. `Menu Category` is a copy of the exact mapping used.
+  - `TOAST` and `SQUARE` keep every input row and column, with mapping status appended.
+  - `Exceptions` lists rows outside the pivot. `Location Coverage` gives per-store exception
+    Qty and %. `Validation` reconciles pivot Qty plus exception Qty to total Qty.
 
 ## Commands
 
-Run from the project root in PowerShell, with the existing Anaconda environment.
-It has pandas, openpyxl, XlsxWriter and pywin32 installed. The VS Code-selected
-interpreter did not have these packages during this session.
+Run from the project root in PowerShell with the Anaconda interpreter, which has pandas,
+openpyxl, XlsxWriter and pywin32. The report and `verify_result.py` need Excel for Windows.
+Outputs are never overwritten, so remove or rename an old output before rebuilding it.
 
 ```powershell
 & 'D:\Anaconda\python.exe' mapping_first\pmix_workflow.py map `
-  --output 'mapping_first\USA PMix - Menu Mapping.xlsx'
+  --output 'Result\USA PMix - Menu Mapping.xlsx'
 
 & 'D:\Anaconda\python.exe' mapping_first\pmix_workflow.py report `
-  --mapping 'mapping_first\USA PMix - Menu Mapping.xlsx' `
-  --output 'mapping_first\USA PMix - Recategorized.xlsx' `
+  --mapping 'Result\USA PMix - Menu Mapping.xlsx' `
+  --output 'Result\USA PMix - PMIX Report DRAFT.xlsx' `
   --draft --all-dates
 ```
 
-Outputs are not overwritten automatically, particularly the editable master.
-Use a new output filename when rebuilding a report.
+`prepare` takes the same arguments as `report` and writes the data sheets without a PivotTable.
 
-The explicit noninteractive preparation command is:
+After review, edit Category, Menu, Menu group, Item and Review Notes in the master. Mark
+supported rows `Approved`. Mark genuine exclusions `Excluded` with a reason. Do not edit Mapping
+ID or the source identity columns. Hand edits live only in that saved file, so a new `map` run
+does not include them. Changing the master affects the **next report build**; Excel Refresh
+alone does not rerun the mapping.
 
-```powershell
-& 'D:\Anaconda\python.exe' mapping_first\pmix_workflow.py prepare `
-  --mapping 'mapping_first\USA PMix - Menu Mapping.xlsx' `
-  --output 'mapping_first\USA PMix - Pivot Source.xlsx' `
-  --draft --all-dates
-```
-
-`prepare` does not activate Excel and never claims to build a PivotTable.
-It is a workpaper for auditing the mapped source, not a substitute for `report`.
-
-After review, edit Category, Menu, Menu group, Item and Review Notes in the
-mapping master. Mark supported rows `Approved`. Mark genuine exclusions
-`Excluded` and give a reason; retain them for reconciliation. Do not edit the
-Mapping ID or source identity columns.
-
-For an approved report in an explicitly supplied inclusive window:
-
-```powershell
-& 'D:\Anaconda\python.exe' mapping_first\pmix_workflow.py report `
-  --mapping 'mapping_first\USA PMix - Menu Mapping.xlsx' `
-  --output 'mapping_first\USA PMix - Approved Window.xlsx' `
-  --start 2026-08-03 --end 2026-10-25
-```
-
-The dates above illustrate the available full window, not a separately agreed
-final reporting period. A final build refuses Pending mappings within its window.
-Changing the mapping affects the **next report build**; Excel Refresh alone does
-not rerun the mapping stage.
-
-The timeline can narrow the source window in a built workbook. To include dates
-outside that workbook's data window, rebuild with a wider window and appropriate
-source data. No macro is required for filtering or expand/collapse.
+For an approved report, drop `--draft --all-dates` and give `--start` and `--end`.
 
 ## Measures and filters
 
-- `Qty (#)` is **sum of item quantity**, including negative returns and zero
-  quantity lines. It is not a distinct customer-order count; the input lacks
-  order/check IDs.
-- `Qty (%)` uses Excel's **% of Grand Total**, recomputed for the filtered,
-  classified data. Expanding one category without filtering leaves its share
-  relative to the whole selection. Selecting only one category makes that
-  category's visible total 100%.
-- Unresolved/excluded quantities are outside this denominator and explicitly
-  reconciled on `Validation`. A draft is not final until those cases are reviewed.
-- Quarters are calendar quarters, labeled with the year. October is Q4.
-- Source location labels are retained, except that Square "Fluffy Fluffy Tucker GA"
-  is renamed to the Toast label "Fluffy Fluffy - Tucker" (Cheena confirmed they are
-  the same store, 2026-10-31). The actual input places Miami and Carrollton in SQUARE.
-- No gross sales, net sales, or revenue percentages are invented; those inputs
-  are absent from this workbook.
+- `Qty (#)` is the sum of item quantity, including returns and zero-quantity lines. It is not an
+  order count, because the input has no order or check ID.
+- `Qty (%)` is % of grand total, recalculated for the filtered rows in the pivot. Rows in
+  `Exceptions` are outside this denominator. Miscellaneous is a category, so it is inside it.
+- The exception notice on `PMIX` is a fixed total and does not follow the slicers.
+- Quarters are calendar quarters labeled with the year. Weeks start on Monday and are labeled
+  with that date, for example 2026-08-03.
+- Language: every label the report sets is English, and `verify_result.py` scans both report
+  sheets for Chinese characters. The date timeline was replaced by the Week starting slicer,
+  because Excel draws a timeline's month names and date range in the viewer's Windows language,
+  which a file cannot override. Excel's own menus, tooltips and filter pop-ups still follow the
+  viewer's Office language.
+- Source location labels are kept, except that Square `Fluffy Fluffy Tucker GA` is renamed to the
+  Toast label `Fluffy Fluffy - Tucker`, confirmed as the same store on 2026-10-31. The report
+  therefore has 19 locations from 20 source labels. The `TOAST` and `SQUARE` sheets keep the
+  original label.
+- Excel treats labels that differ only by case as one pivot item, for example `Oreo Frappe` and
+  `OREO Frappe`. Totals are unaffected; one spelling is displayed.
+- No sales or revenue figures are invented, because those inputs are absent.
 
-## Tests
+## Tests and checks
 
 ```powershell
-& 'D:\Anaconda\python.exe' -m unittest discover `
-  -s mapping_first -p test_pmix_workflow.py -v
-
+& 'D:\Anaconda\python.exe' mapping_first\test_pmix_workflow.py
 & 'D:\Anaconda\python.exe' mapping_first\validate_prepared.py
+& 'D:\Anaconda\python.exe' mapping_first\verify_result.py
 ```
 
-The `report` command attempts to create its native PivotTable through a separate
-Excel COM instance and save it with Excel itself. The user's existing Excel
-workbooks are never intentionally closed by the pipeline.
+- `test_pmix_workflow.py` covers the mapping rules and workbook helpers.
+- `validate_prepared.py` compares every original cell and reconciles rows, Qty and all report keys.
+- `verify_result.py` opens a temporary copy in live Excel, drives the real slicers,
+  checks each result against an independent recompute, and writes
+  `Result/VALIDATION_RESULTS.json`.
+
+These prove the arithmetic and that the rules were applied. They do not prove a category is what
+the business wants; only review can do that.

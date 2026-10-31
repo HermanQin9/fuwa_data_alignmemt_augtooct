@@ -1,4 +1,5 @@
-"""Independently audit every original cell and reconcile the prepared draft."""
+"""Independently audit every original cell and reconcile a built report or prepared draft."""
+import argparse
 import datetime as dt
 import json
 from collections import Counter
@@ -10,8 +11,9 @@ import openpyxl
 
 ROOT = Path(__file__).resolve().parent
 SOURCE = ROOT.parent / "USA PMix.xlsx"
-MAPPING = ROOT / "USA PMix - Menu Mapping.xlsx"
-OUTPUT = ROOT / "USA PMix - Pivot Source.xlsx"
+RESULT = ROOT.parent / "Result"
+# Restated here rather than imported, so the audit stays independent of the workflow.
+LOCATION_ALIASES = {"Fluffy Fluffy Tucker GA": "Fluffy Fluffy - Tucker"}
 
 
 def records(sheet):
@@ -26,9 +28,13 @@ def blank(value):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--mapping", type=Path, default=RESULT / "USA PMix - Menu Mapping.xlsx")
+    parser.add_argument("--output", type=Path, default=RESULT / "USA PMix - PMIX Report DRAFT.xlsx")
+    args = parser.parse_args()
     source = openpyxl.load_workbook(SOURCE, read_only=True, data_only=True)
-    mapping = openpyxl.load_workbook(MAPPING, read_only=True, data_only=True)
-    output = openpyxl.load_workbook(OUTPUT, read_only=True, data_only=True)
+    mapping = openpyxl.load_workbook(args.mapping, read_only=True, data_only=True)
+    output = openpyxl.load_workbook(args.output, read_only=True, data_only=True)
     try:
         master = {}
         mapping_rows = mapping_qty = 0
@@ -63,17 +69,20 @@ def main():
                 assert original is not sentinel and copied is not sentinel, f"{name}: different row counts"
                 for col, value in enumerate(original):
                     actual = copied[col]
+                    original_cells += 1
+                    if value in ("", None) and actual in ("", None):
+                        continue  # Excel stores an empty string and an empty cell alike
                     assert value == actual and type(value) is type(actual), (
                         f"{name}!row {excel_row}, column {col + 1}: "
                         f"{value!r} ({type(value).__name__}) != {actual!r} ({type(actual).__name__})"
                     )
-                    original_cells += 1
                 key = (name, blank(original[indices[group]]), original[indices[item]])
                 assert key in master, f"Missing mapping: {key!r}"
                 rule = master[key]
                 qty = original[indices["Qty"]]
                 sale_date = original[indices[date]].date()
                 location = original[indices["Location"]].strip()
+                location = LOCATION_ALIASES.get(location, location)
                 row_id = (name, excel_row)
                 expected[row_id] = (rule, qty, sale_date, location)
                 source_counts[name] += 1
@@ -120,6 +129,7 @@ def main():
             assert isinstance(row["Date"], dt.datetime) and row["Date"].date() == sale_date
             quarter = (sale_date.month - 1) // 3 + 1
             assert row["Year"] == sale_date.year
+            assert row["Week starting"] == (sale_date - dt.timedelta(days=sale_date.weekday())).isoformat()
             assert row["Month"] == sale_date.strftime("%Y-%m")
             assert row["Period"] == f"{sale_date.year} Q{quarter}"
             actual_categories[(row["Category"], row["Period"])] += qty
@@ -183,7 +193,7 @@ def main():
             "validation_metadata_checks": "PASS",
             "data_checks": "PASS",
             "semantic_mapping_approval": "Pending business review",
-            "native_pivot_and_filter_tests": "NOT RUN - Excel COM sandbox access denied",
+            "native_pivot_and_filter_tests": "See verify_result.py",
         }
         print(json.dumps(result, indent=2))
     finally:

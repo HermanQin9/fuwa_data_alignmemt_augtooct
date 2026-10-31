@@ -1,3 +1,6 @@
+> Historical audit prompt, kept for reference. It describes the original eight categories and file
+> locations. For the current rules and paths, see `README.md`.
+
 # Files to upload
 
 1. `../USA PMix.xlsx` — original POS sales and original Menu Category outline.

@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 import openpyxl
+import openpyxl.styles
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -74,10 +75,133 @@ class MappingWorkflowTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     workflow.apply_mapping(self.source, bad, draft=True)
 
-    def test_sandwiches_allowed_and_tucker_label_aliased(self):
-        self.assertIn("Sandwiches", workflow.CATEGORIES)
-        self.assertEqual(workflow.LOCATION_ALIASES["Fluffy Fluffy Tucker GA"],
-                         "Fluffy Fluffy - Tucker")
+    def test_allowed_categories_include_the_business_additions(self):
+        self.assertEqual(len(workflow.CATEGORIES), 11)
+        for category in ("Sandwiches", "Appetizers", "Miscellaneous"):
+            self.assertIn(category, workflow.CATEGORIES)
+
+    def test_business_rules(self):
+        for group, item, draft, expected in [
+            ("Sandwiches", "Ham and Cheese Sandwich", "Fluffy All Day", "Sandwiches"),
+            ("Savory Croffles", "BELT Croffle", "Fluffy All Day", "Sandwiches"),
+            ("Savory Croffles", "BLT", "Fluffy All Day", "Sandwiches"),
+            ("Crunchy Croissant", "Ham and Cheese Croissant", "Fluffy All Day", "Sandwiches"),
+            ("Appetizers", "Crispy Calamari", "", "Appetizers"),
+            ("Appetizer", "Fries", "Add-Ons", "Appetizers"),
+            ("Ice Cream", "Vanilla Ice Cream", "", "Add-Ons"),
+            ("Ice Cream", "Single Scoop", "", "Add-Ons"),
+            ("Soft Serve", "Vanilla Soft Serve", "", "Add-Ons"),
+            ("Sweet Pancakes", "Ice Cream (1)", "Pancakes", "Add-Ons"),
+            ("Mango Pudding", "Mango Pudding", "Promotions", "Pastries"),
+            ("Sweets", "Tiramisu Cake", "", "Pastries"),
+            ("None", "Chocolate Cake (Slice)", "Drinks", "Pastries"),
+            ("Small Bites", "Spicy Yuzu Chicken Bites (8 pcs)", "Japanese Eats", "Add-Ons"),
+            ("Special Snacks", "Crispy Chicken Wings (6 pc)", "", "Add-Ons"),
+            ("", "Single Pancake", "Pancakes", "Add-Ons"),
+            ("", "1 Plain Pancake", "Pancakes", "Add-Ons"),
+            ("", "Gift Card", "", "Miscellaneous"),
+            ("?? MUST SELECT FOR UTENSILS ??", "Need Utensils", "", "Miscellaneous"),
+            ("FREE ICE CREAM", "Signature Pancakes", "Pancakes", "Promotions"),
+            ("Buy Any Chicken Bowl Get Refresher $1.99", "Teriyaki Chicken Plate",
+             "Japanese Eats", "Promotions"),
+        ]:
+            with self.subTest(item=item):
+                self.assertEqual(workflow.business_rule(group, item, draft)[0], expected)
+
+    def test_business_rules_leave_other_products_alone(self):
+        for group, item, draft in [
+            ("Fluffy Chicken Bowl", "Teriyaki Chicken Bowl", "Japanese Eats"),
+            ("Chicken Feast", "Shareable chicken 8 Pieces", "Japanese Eats"),
+            ("Special Snacks", "Karaage Chicken", "Japanese Eats"),
+            ("Sides", "Deep Fried Chicken Gyoza", "Japanese Eats"),
+            ("Basque Cheesecake", "Original Basque Cheesecake - Slice", "Cheesecakes"),
+            ("Basque Cheesecake", "Warm Brownie with Ice Cream Scoop", "Pastries"),
+            ("Fluffy Pancakes", "Signature Pancakes", "Pancakes"),
+            ("Pancakes", "Special Pancake Combo (come with a free ice cream)", "Promotions"),
+            ("Sweet Croffles", "Oreo Croffles", "Pastries"),
+            ("Extra Sweet", "Affogato", ""),
+            ("Espresso Latte", "Fluffy Pumpkin Spice Tiramisu Latte", "Drinks"),
+        ]:
+            with self.subTest(item=item):
+                self.assertEqual(workflow.business_rule(group, item, draft), (draft, ""))
+
+    def test_custom_amount_is_an_intentional_exclusion(self):
+        source = self.source.iloc[[0]].copy()
+        source["Source Item"], source["Source Group"] = "Custom Amount", "None"
+        source["POS Sheet"] = "SQUARE"
+        source["Mapping ID"] = workflow.mapping_id("SQUARE", "None", "Custom Amount")
+        row = workflow.propose_mapping(source, self.reference).iloc[0]
+        self.assertEqual((row["Category"], row["Review Status"]), ("", "Excluded"))
+        result = workflow.apply_mapping(source, pd.DataFrame([row]), draft=True)
+        self.assertIn("intentionally", result.iloc[0]["Exception Reason"])
+
+    def test_changed_category_drops_the_old_reference_path(self):
+        reference = pd.DataFrame([
+            {"Reference Row": 1, "Reference Top": "All Fluffy All Day", "Category": "Fluffy All Day",
+             "Menu": "Lunch", "Menu group": "Croissant Sandwiches", "Item": "BLT Sandwich"},
+            {"Reference Row": 2, "Reference Top": "All Promotions", "Category": "Promotions",
+             "Menu": "Special Promotions", "Menu group": "Mango Pudding", "Item": "Mango Pudding"},
+        ])
+        source = pd.concat([self.source.iloc[[0]]] * 2, ignore_index=True)
+        source["Source Item"] = ["BLT Sandwich", "Mango Pudding"]
+        source["Source Group"] = ["Lunch Sandwich", "Pastries"]
+        source["Mapping ID"] = [workflow.mapping_id("TOAST", g, i) for g, i in
+                                zip(source["Source Group"], source["Source Item"])]
+        mapping = workflow.propose_mapping(source, reference).set_index("Source Item")
+        self.assertEqual(mapping.loc["BLT Sandwich", ["Category", "Menu", "Menu group"]].tolist(),
+                         ["Sandwiches", "Sandwiches", "Croissant Sandwiches"])
+        self.assertEqual(mapping.loc["Mango Pudding", ["Category", "Menu", "Menu group"]].tolist(),
+                         ["Pastries", "Pastries", "Pastries"])
+
+    def small_workbook(self, directory):
+        book = openpyxl.Workbook()
+        toast = book.active
+        toast.title = "TOAST"
+        toast.append(["Menu Group", "Menu Item", "Sent Date", "Qty", "Location"])
+        toast.append(["Sandwiches", "BLT Sandwich", dt.datetime(2026, 8, 3), 1, "Fluffy Fluffy - Tucker"])
+        square = book.create_sheet("SQUARE")
+        square.append(["Category", "Item", "Date", "Qty", "Location"])
+        square.append(["Coffee", "Latte", dt.datetime(2026, 8, 4), 2, "Fluffy Fluffy Tucker GA "])
+        menu = book.create_sheet("Menu Category")
+        for level, name in ((0, "All Pancakes"), (1, "Pancakes"), (3, "Pancakes"), (4, "Signature")):
+            menu.append([None, None, None, None, name])
+            menu.cell(menu.max_row, 5).alignment = openpyxl.styles.Alignment(indent=level)
+        path = Path(directory) / "source.xlsx"
+        book.save(path)
+        return path
+
+    def test_tucker_rename_keeps_the_source_label(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            _, source = workflow.load_sources(self.small_workbook(directory))
+        self.assertEqual(source["Location"].unique().tolist(), ["Fluffy Fluffy - Tucker"])
+        self.assertEqual(source["Source Location"].nunique(), 2)
+
+    def test_mapping_dropdown_covers_every_allowed_category(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            output = Path(directory) / "mapping.xlsx"
+            result = workflow.make_mapping(self.small_workbook(directory), output)
+            self.assertEqual(result["mapping_rows"], 2)
+            book = openpyxl.load_workbook(output)
+            try:
+                listed = [row[0].value for row in book["Allowed Categories"].iter_rows(min_row=2)]
+                rules = book["Menu Category"].data_validations.dataValidation
+                self.assertEqual(listed, workflow.CATEGORIES)
+                self.assertIn(f"$A${len(listed) + 1}", rules[0].formula1)
+            finally:
+                book.close()
+
+    def test_place_sets_caption_geometry_and_free_floating(self):
+        class FakeShape:
+            Placement = None
+
+        class FakeSlicer:
+            Shape = FakeShape()
+
+        slicer = FakeSlicer()
+        workflow.place(slicer, "Sale date window", 1, 2, 3, 4)
+        self.assertEqual((slicer.Caption, slicer.Top, slicer.Left, slicer.Width, slicer.Height),
+                         ("Sale date window", 1, 2, 3, 4))
+        self.assertEqual(slicer.Shape.Placement, 3)
 
     def test_missing_and_duplicate_mapping_rejected(self):
         with self.assertRaisesRegex(ValueError, "missing"):
