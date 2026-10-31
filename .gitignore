@@ -1,0 +1,18 @@
+# Excel temporary and lock files
+~$*.xlsx
+~$*.xls
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pkl
+
+# VS Code local state
+.vscode/*
+!.vscode/settings.json
+
+# Business sales data: public repo, keep workbooks local until sharing is approved
+*.xlsx
+*.xls
+*.csv

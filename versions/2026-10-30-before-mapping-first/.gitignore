@@ -1,0 +1,13 @@
+# Excel temporary and lock files
+~$*.xlsx
+~$*.xls
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pkl
+
+# VS Code local state
+.vscode/*
+!.vscode/settings.json

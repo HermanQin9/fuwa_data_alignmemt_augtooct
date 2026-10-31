@@ -1,0 +1,41 @@
+{
+  "scope": "Prepared mapping-first data, not a finished interactive workbook",
+  "unit_tests_passed": 13,
+  "source_rows": {
+    "TOAST": 185823,
+    "SQUARE": 6984
+  },
+  "source_net_qty": 202865,
+  "original_cells_compared_with_type_check": 1542456,
+  "source_preservation": "PASS",
+  "detailed_report_keys_checked": 3786,
+  "per_mapping_counts_and_qty": "PASS",
+  "exceptions_field_level_checks": "PASS",
+  "year_quarter_month_checks": "PASS",
+  "validation_metadata_checks": "PASS",
+  "corrected_draft_mapping_entries": 9,
+  "source_rows_affected_by_corrections": 560,
+  "net_qty_affected_by_corrections": 594,
+  "mapping_entries": 2102,
+  "mapping_entries_with_draft_category": 1664,
+  "mapping_entries_requiring_resolution": 438,
+  "all_mappings_pending_business_review": true,
+  "pivot_source_rows": 185121,
+  "pivot_source_net_qty": 194679,
+  "exception_rows": 7686,
+  "exception_net_qty": 8186,
+  "quantity_reconciliation": "PASS: 194679 + 8186 = 202865",
+  "observed_location_labels": 20,
+  "date_window": {
+    "inclusive_start": "2026-08-03",
+    "inclusive_end": "2026-10-25",
+    "purpose": "User-approved full-source draft, not a final reporting period"
+  },
+  "native_pivot_generated": false,
+  "interactive_filter_tests_completed": false,
+  "overall_verdict": "NOT READY FOR FINAL DELIVERY: unresolved mappings, pending business approval and no native interactive workbook",
+  "native_pivot_blocker": "Sandbox denied Excel COM activation",
+  "git_branch_created": false,
+  "git_blocker": "Sandbox denied execution of installed Git binary",
+  "user_decision": "Leave snapshot, code, draft mapping/data and Claude prompt for now"
+}
