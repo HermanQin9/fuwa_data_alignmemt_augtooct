@@ -452,5 +452,77 @@ class MappingWorkflowTests(unittest.TestCase):
                 book.close()
 
 
+class CarryOverTests(unittest.TestCase):
+    """A new map run on new data keeps what a reviewer decided in the previous master."""
+
+    def setUp(self):
+        tests = MappingWorkflowTests("test_map_covers_all_rows_and_blank_groups")
+        tests.setUp()
+        self.mapping = tests.mapping  # Signature Pancakes (Pancakes) and D (no category)
+        self.pancake = self.mapping.iloc[0]["Mapping ID"]
+        self.blank = self.mapping.iloc[1]["Mapping ID"]
+
+    def previous(self, **changes):
+        frame = self.mapping.copy()
+        for column, value in changes.items():
+            frame.loc[0, column] = value
+        return frame
+
+    def test_approved_decision_and_its_item_name_are_kept(self):
+        previous = self.previous(**{"Category": "Fluffy All Day", "Item": "Signature Pancake",
+                                    "Review Status": "Approved", "Evidence": "Cheena review",
+                                    "Menu List Status": "Listed", "Menu List Match": "x [PANCAKES]"})
+        mapping, earlier, changes = workflow.carry_over(self.mapping, previous)
+        row = mapping.set_index("Mapping ID").loc[self.pancake]
+        self.assertEqual((row["Category"], row["Item"], row["Review Status"], row["Evidence"]),
+                         ("Fluffy All Day", "Signature Pancake", "Approved", "Cheena review"))
+        self.assertEqual(row["Menu List Status"], "Listed")
+        self.assertEqual(row["Rows"], 2)  # counts come from the new data
+        self.assertEqual(changes["Change"].tolist(), [workflow.KEPT])
+        self.assertIn("rules now give 'Pancakes'", changes.iloc[0]["Details"])
+        self.assertTrue(earlier.empty)
+
+    def test_new_items_are_listed_and_left_pending(self):
+        mapping, _, changes = workflow.carry_over(self.mapping, self.mapping.iloc[[0]])
+        self.assertEqual(changes.set_index("Mapping ID").loc[self.blank, "Change"], workflow.NEW_ITEM)
+        self.assertEqual(mapping.set_index("Mapping ID").loc[self.blank, "Review Status"], "Pending")
+        self.assertEqual(len(changes), 1)
+
+    def test_pending_hand_edit_follows_the_rules_and_is_reported(self):
+        mapping, _, changes = workflow.carry_over(self.mapping, self.previous(Category="Drinks"))
+        self.assertEqual(mapping.set_index("Mapping ID").loc[self.pancake, "Category"], "Pancakes")
+        self.assertEqual(changes["Change"].tolist(), [workflow.REBUILT])
+        self.assertIn("Category: was 'Drinks', now 'Pancakes'", changes.iloc[0]["Details"])
+
+    def test_unchanged_previous_mapping_reports_nothing(self):
+        mapping, earlier, changes = workflow.carry_over(self.mapping, self.mapping)
+        pd.testing.assert_frame_equal(mapping, self.mapping)
+        self.assertTrue(changes.empty and earlier.empty)
+
+    def test_reviewed_items_not_in_this_data_are_kept_for_later(self):
+        gone = self.previous(**{"Mapping ID": "old", "Source Item": "Old Item",
+                                "Review Status": "Approved"})
+        pending_gone = self.previous(**{"Mapping ID": "old2", "Source Item": "Old Pending"})
+        previous = pd.concat([self.mapping, gone.iloc[[0]], pending_gone.iloc[[0]]])
+        _, earlier, _ = workflow.carry_over(self.mapping, previous)
+        self.assertEqual(earlier["Mapping ID"].tolist(), ["old"])
+
+    def test_invalid_approved_category_is_refused(self):
+        previous = self.previous(**{"Category": "Desserts", "Review Status": "Approved"})
+        with self.assertRaisesRegex(ValueError, "invalid Category"):
+            workflow.carry_over(self.mapping, previous)
+
+    def test_read_previous_adds_earlier_decisions_and_current_rows_win(self):
+        earlier = self.previous(**{"Category": "Drinks", "Review Status": "Approved"}).iloc[[0]]
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            path = Path(directory) / "previous.xlsx"
+            with pd.ExcelWriter(path, engine="xlsxwriter") as writer:
+                workflow.write_table(writer, "Menu Category", self.mapping)
+                workflow.write_table(writer, workflow.EARLIER_SHEET, earlier)
+            previous = workflow.read_previous(path)
+        self.assertEqual(len(previous), 2)
+        self.assertEqual(previous.set_index("Mapping ID").loc[self.pancake, "Category"], "Pancakes")
+
+
 if __name__ == "__main__":
     unittest.main()

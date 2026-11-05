@@ -284,6 +284,8 @@ def main():
     parser.add_argument("--source", type=Path, default=SOURCE)
     parser.add_argument("--layout", choices=sorted(GROUP), default="category",
                         help="Layout the report was built with (pmix_workflow.py --layout)")
+    parser.add_argument("--json-dir", type=Path, default=RESULT,
+                        help="Folder for the results JSON (run_pipeline.py checks a staging folder)")
     args = parser.parse_args()
     status, first, last = stated_window(args.report)
     rows, mapping = expected_rows(args.source, args.mapping, first, last, args.layout)
@@ -312,7 +314,7 @@ def main():
         "live_excel_failures": failures,
         "overall": "PASS" if not failures else "FAIL",
     }
-    (RESULT / JSON_NAME[args.layout]).write_text(
+    (args.json_dir / JSON_NAME[args.layout]).write_text(
         json.dumps(result, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
     print(json.dumps(result, indent=2, ensure_ascii=True))
     return 1 if failures else 0

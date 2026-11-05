@@ -122,6 +122,43 @@ entries are `Not in Menu Items List`.
     first. Today that is only `Tater Tots (1 serving)` and `(2 serving)`, under ADD-ONS and
     APPETIZER.
 
+## Running on new data
+
+`run_pipeline.py` does the whole run in one command: unit tests, the mapping, both reports,
+`validate_prepared.py` and `verify_result.py` on each report.
+
+```powershell
+& 'D:\Anaconda\python.exe' mapping_first\run_pipeline.py `
+  --source 'D:\data\USA PMix Nov.xlsx' --label nov-data
+```
+
+- `--source` is the new POS export, a workbook with `TOAST` and `SQUARE` sheets in the same
+  columns as today. It does not need a `Menu Category` sheet; the outline is read from
+  `--reference` (default `USA PMix.xlsx`).
+- `--previous` is the reviewed mapping to learn from. It defaults to the one in `Result/`. When
+  Cheena sends back a reviewed copy, pass that file.
+- Everything is built in `Result/_building/<run>/` first. Only when every step passes are the
+  current `Result/` files moved to `versions/<date>-before-<label>/` and the new files moved in.
+  If a step fails, `Result/` is not touched and the run's log is in that folder.
+- `--dry-run` builds and checks but leaves `Result/` as it is.
+- Default is a draft over all dates. For the approved report, add `--final --start YYYY-MM-DD
+  --end YYYY-MM-DD`; it stops if any entry in that window is still Pending.
+- `Result/PIPELINE_RUN.json` and `PIPELINE_RUN.log` record the run: inputs, every step and its
+  time, and the mapping counts below.
+
+What the new mapping keeps from `--previous`, matched by Mapping ID:
+
+- `Approved` and `Excluded` entries keep Category, Menu, Menu group, Item, Review Status,
+  Evidence and Review Notes. Counts (Rows, Net Qty, Locations) come from the new data.
+- `Pending` entries are rebuilt by the rules, so rule changes reach them. A hand edit on a
+  Pending row is not kept; mark the row Approved to keep it.
+- Reviewed entries for items not in the new data go to the `Earlier Decisions` sheet and are
+  used again when the item sells again.
+
+The `Changes` sheet in the mapping lists what needs a look: `New item` (not in the previous
+mapping), `Reviewed decision kept` (the rules now disagree with an approved row; the approval
+wins), and `Pending entry changed` (with the old values, so nothing is lost silently).
+
 ## Commands
 
 Run from the project root in PowerShell with the Anaconda interpreter, which has pandas,
@@ -131,6 +168,7 @@ Outputs are never overwritten, so remove or rename an old output before rebuildi
 ```powershell
 & 'D:\Anaconda\python.exe' mapping_first\pmix_workflow.py map `
   --output 'Result\USA PMix - Menu Mapping.xlsx'   # --menu-list <file> uses another list
+# --previous <mapping> keeps its reviewed decisions; --reference <file> reads the outline elsewhere
 
 & 'D:\Anaconda\python.exe' mapping_first\pmix_workflow.py report `
   --mapping 'Result\USA PMix - Menu Mapping.xlsx' `
@@ -152,8 +190,8 @@ The Menu List report uses the same mapping:
 After review, edit Category, Menu, Menu group, Item and Review Notes in the master. Filter
 `Menu List Status` for `Not in Menu Items List` to see the items still to be cleaned. Mark
 supported rows `Approved`. Mark genuine exclusions `Excluded` with a reason. Do not edit Mapping
-ID or the source identity columns. Hand edits live only in that saved file, so a new `map` run
-does not include them. Changing the master affects the **next report build**; Excel Refresh
+ID or the source identity columns. A new `map` run keeps Approved and Excluded rows when given
+`--previous`; other hand edits live only in that saved file. Changing the master affects the **next report build**; Excel Refresh
 alone does not rerun the mapping.
 
 For an approved report, drop `--draft --all-dates` and give `--start` and `--end`.

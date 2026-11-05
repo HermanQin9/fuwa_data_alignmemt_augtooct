@@ -11,6 +11,7 @@ the mapping.
 | `USA PMix - Result Check.xlsx` | Check results, changes from the first draft, review findings and open questions | No |
 | `VALIDATION_RESULTS.json` | Overall totals and pass/fail results for the PMIX report | Yes |
 | `VALIDATION_RESULTS - Menu List.json` | The same for the Menu List report | Yes |
+| `PIPELINE_RUN.json`, `PIPELINE_RUN.log` | What the last `run_pipeline.py` run used and did (after the first pipeline run) | No |
 | `README.md` | This file | Yes |
 
 Each report opens on `PMIX`, the main table. The `By Location` sheet shows every item in every
@@ -25,4 +26,7 @@ that still need a clean name. Item names were cleaned against that list; categor
 The repository is public, so the workbooks stay on the local machine. They hold store sales data
 and are ignored by Git.
 
-To rebuild or re-check these files, see [`../mapping_first/README.md`](../mapping_first/README.md).
+A mapping built by the pipeline also has a `Changes` sheet (new items, and rows whose rules
+changed) and an `Earlier Decisions` sheet (approved items not in the current data).
+
+To run everything on new data, or rebuild or re-check these files, see [`../mapping_first/README.md`](../mapping_first/README.md).

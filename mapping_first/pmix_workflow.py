@@ -494,6 +494,80 @@ def propose_mapping(source: pd.DataFrame, reference: pd.DataFrame,
     return pd.DataFrame(rows, columns=MAPPING_COLUMNS)
 
 
+# What a reviewer decides in the master. A new map run carries these over by Mapping ID.
+REVIEW_FIELDS = ["Category", "Menu", "Menu group", "Item", "Review Status", "Evidence", "Review Notes"]
+REVIEWED = ("Approved", "Excluded")
+# Reviewed decisions for items absent from the current data, kept for when they sell again.
+EARLIER_SHEET = "Earlier Decisions"
+CHANGES_SHEET = "Changes"
+CHANGE_COLUMNS = ["Mapping ID", *KEY_COLUMNS, "Change", "Details"]
+NEW_ITEM = "New item"
+KEPT = "Reviewed decision kept"
+REBUILT = "Pending entry changed"
+
+
+def read_previous(path: Path) -> pd.DataFrame:
+    """A previous master: its Menu Category rows, then any decisions it kept from earlier runs."""
+    frames = [pd.read_excel(path, sheet_name="Menu Category", dtype=object, keep_default_na=False)]
+    try:
+        frames.append(pd.read_excel(path, sheet_name=EARLIER_SHEET, dtype=object, keep_default_na=False))
+    except ValueError:
+        pass  # masters built before carry-over have no such sheet
+    previous = pd.concat(frames, ignore_index=True)
+    missing = set(MAPPING_COLUMNS) - set(previous)
+    if missing:
+        raise ValueError(f"Previous mapping {path} is missing columns {sorted(missing)}")
+    return previous.drop_duplicates("Mapping ID", keep="first")
+
+
+def carry_over(mapping: pd.DataFrame, previous: pd.DataFrame
+               ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Keep the reviewed decisions of a previous master in a freshly proposed one.
+
+    Approved and Excluded entries keep their reviewed fields. Pending entries are rebuilt by
+    the rules; any difference from before is listed so a hand edit is never lost silently.
+    Returns (mapping, earlier decisions not in this data, changes).
+    """
+    old = {row["Mapping ID"]: row for row in previous.to_dict("records")}
+    mapping = mapping.copy()
+    changes = []
+
+    def note(row, change, details):
+        changes.append({**{c: row[c] for c in ["Mapping ID", *KEY_COLUMNS]},
+                        "Change": change, "Details": details})
+
+    for index, row in mapping.iterrows():
+        before = old.get(row["Mapping ID"])
+        if before is None:
+            note(row, NEW_ITEM, "Not in the previous mapping. Please review."
+                 + (f" Suggested category: {row['Category']}." if row["Category"] else " No category suggested."))
+            continue
+        differs = [f for f in REVIEW_FIELDS if text(before[f]) != text(row[f])]
+        if text(before["Review Status"]) in REVIEWED:
+            if before["Review Status"] == "Approved" and before["Category"] not in CATEGORIES:
+                raise ValueError(f"Previous mapping: Approved entry {row['Source Item']!r} "
+                                 f"has invalid Category {before['Category']!r}")
+            for field in REVIEW_FIELDS:
+                mapping.at[index, field] = before[field]
+            if text(before["Item"]) != text(row["Item"]):
+                # The reviewed name stands, so its list status comes with it.
+                mapping.at[index, "Menu List Status"] = before["Menu List Status"]
+                mapping.at[index, "Menu List Match"] = before["Menu List Match"]
+            # Only a real disagreement with the rules is worth listing, not the status itself.
+            differs = [f for f in differs if f in ("Category", "Menu", "Menu group", "Item")]
+            if differs:
+                note(row, KEPT, "; ".join(f"{f}: kept {text(before[f])!r}, rules now give {text(row[f])!r}"
+                                          for f in differs))
+        elif differs:
+            note(row, REBUILT, "; ".join(f"{f}: was {text(before[f])!r}, now {text(row[f])!r}"
+                                         for f in differs)
+                 + ". Pending entries follow the rules; mark a row Approved to keep a hand edit.")
+    current = set(mapping["Mapping ID"])
+    earlier = previous[~previous["Mapping ID"].isin(current)
+                       & previous["Review Status"].isin(REVIEWED)][MAPPING_COLUMNS]
+    return mapping, earlier.reset_index(drop=True), pd.DataFrame(changes, columns=CHANGE_COLUMNS)
+
+
 def write_table(writer, name: str, frame: pd.DataFrame, autofilter: bool = True) -> None:
     frame.to_excel(writer, sheet_name=name, index=False)
     ws = writer.sheets[name]
@@ -517,15 +591,21 @@ def write_table(writer, name: str, frame: pd.DataFrame, autofilter: bool = True)
                     ws.write_string(row, column, "")
 
 
-def make_mapping(source_path: Path, output: Path, menu_list_path: Path = MENU_LIST_FILE) -> dict:
+def make_mapping(source_path: Path, output: Path, menu_list_path: Path = MENU_LIST_FILE,
+                 reference_path: Path | None = None, previous_path: Path | None = None) -> dict:
     if output.exists():
         raise FileExistsError(f"Refusing to overwrite an editable mapping: {output}")
-    if not menu_list_path.exists():
-        raise FileNotFoundError(f"Menu Items List not found: {menu_list_path}")
+    for path in (menu_list_path, reference_path, previous_path):
+        if path is not None and not path.exists():
+            raise FileNotFoundError(f"Not found: {path}")
     _, source = load_sources(source_path)
-    reference = read_reference(source_path)
+    # A new POS export may have no Menu Category outline, so the reference can be another file.
+    reference = read_reference(reference_path or source_path)
     menu_entries = read_menu_list(menu_list_path)
     mapping = propose_mapping(source, reference, MenuList(menu_entries), load_name_overrides())
+    earlier = changes = None
+    if previous_path is not None:
+        mapping, earlier, changes = carry_over(mapping, read_previous(previous_path))
     coverage = source.groupby(["POS Sheet", "Location"], dropna=False).agg(
         Rows=("Qty", "size"), Net_Qty=("Qty", "sum"),
         First_Date=("Date", "min"), Last_Date=("Date", "max"),
@@ -540,6 +620,9 @@ def make_mapping(source_path: Path, output: Path, menu_list_path: Path = MENU_LI
         write_table(writer, "Allowed Categories", pd.DataFrame({"Category": CATEGORIES}))
         write_table(writer, "Menu Items List",
                     pd.DataFrame(menu_entries, columns=["Section", "Menu Item"]))
+        if previous_path is not None:
+            write_table(writer, CHANGES_SHEET, changes)
+            write_table(writer, EARLIER_SHEET, earlier)
         ws = writer.sheets["Menu Category"]
         ws.data_validation(1, 4, len(mapping), 4, {
             "validate": "list", "source": f"='Allowed Categories'!$A$2:$A${len(CATEGORIES) + 1}",
@@ -547,8 +630,16 @@ def make_mapping(source_path: Path, output: Path, menu_list_path: Path = MENU_LI
         ws.data_validation(1, 8, len(mapping), 8, {
             "validate": "list", "source": ["Pending", "Approved", "Excluded"],
         })
+    carried = {}
+    if previous_path is not None:
+        carried = {"previous_mapping": previous_path.name,
+                   "new_items": int(changes["Change"].eq(NEW_ITEM).sum()),
+                   "approved_entries": int(mapping["Review Status"].eq("Approved").sum()),
+                   "reviewed_differing_from_rules": int(changes["Change"].eq(KEPT).sum()),
+                   "pending_entries_changed": int(changes["Change"].eq(REBUILT).sum()),
+                   "earlier_decisions_kept": len(earlier)}
     return {"mapping_rows": len(mapping), "source_rows": len(source),
-            "net_qty": int(source["Qty"].sum()),
+            "net_qty": int(source["Qty"].sum()), **carried,
             "menu_list_status": mapping["Menu List Status"].value_counts().to_dict(),
             "suggested_rows": int(mapping["Category"].ne("").sum()),
             "excluded_rows": int(mapping["Review Status"].eq("Excluded").sum()),
@@ -870,6 +961,10 @@ def main() -> None:
     build.add_argument("--output", type=Path, required=True)
     build.add_argument("--menu-list", type=Path, default=MENU_LIST_FILE,
                        help="Menu Items List workbook used to clean item names")
+    build.add_argument("--reference", type=Path,
+                       help="Workbook with the 'Menu Category' outline (default: --source)")
+    build.add_argument("--previous", type=Path,
+                       help="Previous reviewed mapping; its Approved/Excluded decisions are kept")
     for command, help_text in (
         ("report", "Read saved mapping and build native Excel pivot"),
         ("prepare", "Prepare auditable pivot source data WITHOUT an interactive report"),
@@ -885,7 +980,7 @@ def main() -> None:
                             help="Row grouping: category (PMIX) or menu-list (Menu Items List sections)")
     args = parser.parse_args()
     if args.command == "map":
-        result = make_mapping(args.source, args.output, args.menu_list)
+        result = make_mapping(args.source, args.output, args.menu_list, args.reference, args.previous)
     else:
         result = make_report(args.source, args.mapping, args.output, args.start,
                              args.end, args.draft, args.all_dates, native=args.command == "report",
