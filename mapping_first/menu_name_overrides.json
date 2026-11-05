@@ -22,5 +22,23 @@
     "source_name": "Veggi Sandwich",
     "list_name": "Veggie Sandwich",
     "reason": "Typo: its only sale is at Aurora, which sells Veggie Sandwich; accepted by Herman, 2026-11-05."
+  },
+  "8b1fca7e3b8f914bbe6144ac385636a23bf47dd9f34d2a7f0c889cfb2a6bd7e5": {
+    "action": "rename",
+    "source_name": "Chicken Wings (10)",
+    "list_name": "Chicken Wings (10 pcs)",
+    "reason": "Same product, portion written as (10); confirmed as the same item by Herman, 2026-11-05."
+  },
+  "2fcbaf3d88aaa425c8508d6d01d43404148897bbde1ee0788df36e96c12fbcc8": {
+    "action": "rename",
+    "source_name": "Deep Fried Pork Gyoza",
+    "list_name": "Deep Fried Pork Gyoza (6 pcs)",
+    "reason": "Same product without the portion size; confirmed as the same item by Herman, 2026-11-05."
+  },
+  "f8b98b6ec636105c1ad39c4d5d12938cafd6fbfdb64ac3c72f05a818939ed52f": {
+    "action": "rename",
+    "source_name": "Deep Fried Edamame Gyoza",
+    "list_name": "Deep Fried Edamame Gyoza (6 pcs)",
+    "reason": "Same product without the portion size; confirmed as the same item by Herman, 2026-11-05."
   }
 }

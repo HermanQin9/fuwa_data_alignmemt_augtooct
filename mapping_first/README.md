@@ -41,7 +41,7 @@ category to reach zero unmapped: unknown items stay blank and appear in `Excepti
 | Promotions | Any product sold through a promotion source group |
 | Pastries | Cakes other than cheesecakes, and Mango Pudding |
 | Add-Ons | Ice cream, single pancakes, and chicken sides |
-| Appetizers | Everything in an Appetizer or Appetizers source group; wings, gyoza and Karaage Chicken (2026-11-05) |
+| Appetizers | Everything in an Appetizer or Appetizers source group; wings, gyoza, Karaage Chicken and Takoyaki (2026-11-05) |
 | Pastries | Affogato, which is a dessert; Affogato Float stays a drink (2026-11-05) |
 | Miscellaneous | Non-menu entries such as gift cards, utensil requests and tests |
 | Blank, `Excluded` | Custom Amount, on purpose, with the reason in Review Notes |
@@ -49,7 +49,7 @@ category to reach zero unmapped: unknown items stay blank and appear in `Excepti
 Chicken sides are Spicy Yuzu Chicken Bites, tenders, strips, and chicken in a side source group.
 On 2026-11-05 Cheena confirmed that wings, gyoza and Karaage Chicken follow the APPETIZER section of
 her Menu Items List instead, so they go in Appetizers, as does the free-text typo `Karrage
-Chicken`. Bowls, dons, plates, chicken feasts and
+Chicken`. Takoyaki, also under APPETIZER on her list, follows it too (Herman, 2026-11-05). Bowls, dons, plates, chicken feasts and
 shareable portions stay in Japanese Eats. These rows show `Business decision 2026-11-05` as
 Evidence.
 
@@ -77,9 +77,10 @@ exact-spelling matches. Items that are not on the list are noted and never guess
 asked; most are free text, typos or POS variants such as `(Cold or Hot)`.
 
 `menu_name_overrides.json` is the place for a typo or variant that a person has judged to be the
-same product as a list name. It holds four today, accepted on 2026-11-05: `Calssic Veg Mayo
-Sandwich`, `Deep Fried Chicken Gyoza`, `Chicken Wings (6)` and `Veggi Sandwich`, renamed to their
-list names. An entry is reversible by deleting its block. Each line holds the Mapping ID, the source name, the
+same product as a list name. It holds seven today, accepted on 2026-11-05: `Calssic Veg Mayo
+Sandwich`, `Veggi Sandwich`, `Chicken Wings (6)`, `Chicken Wings (10)`, and `Deep Fried Chicken
+Gyoza`, `Deep Fried Pork Gyoza` and `Deep Fried Edamame Gyoza` (without their portion size),
+renamed to their list names. An entry is reversible by deleting its block. Each line holds the Mapping ID, the source name, the
 list name and the reason, and no sales figures. A rebuild fails loudly if a listed override name
 has since been removed from the list.
 

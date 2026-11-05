@@ -33,8 +33,8 @@ MENU_LIST_SHEET = "USA Menu List"
 # Cheena's own pile of names she has not placed or cleaned yet; never used as a clean spelling.
 UNSORTED_SECTION = "UNCATEGORIZED"
 DECISION_EVIDENCE = "Business decision 2026-10-31"
-# Cheena's answers of 2026-11-05; rules carrying this tag in their reason get this evidence.
-LATER_DECISION = "(Cheena, 2026-11-05)"
+# Decisions of 2026-11-05; rules carrying this date in their reason get this evidence.
+LATER_DECISION = "2026-11-05"
 LATER_DECISION_EVIDENCE = "Business decision 2026-11-05"
 AUDIT_EVIDENCE = "Audit proposal"
 SOURCE_COLUMNS = {
@@ -359,6 +359,8 @@ CHICKEN_SIDE = re.compile(r"\bwings?\b|\btenders?\b|\bchicken strips?\b|\bstrips
 # Karaage feasts, dons and bowls are not on that section and stay in Japanese Eats.
 # kar+a+ge also catches the POS free-text typo "Karrage Chicken".
 APPETIZER_ITEM = re.compile(r"\bwings?\b|\bgyoza\b|^(chicken )?kar+a+ge( fried)? chicken$")
+# Also under APPETIZER on the list; moved by Herman on 2026-11-05 to follow it.
+TAKOYAKI = re.compile(r"\btakoyaki\b")
 CAKE = re.compile(r"\bcakes?\b|\bcake ?pops?\b|\bcakepops?\b|\brollcakes?\b")
 NOT_CAKE = re.compile(r"cheese ?cake|basque|pancake|latte|frappe|\btea\b|shake|coffee")
 SANDWICH_GROUPS = {"savory croffle", "savory croffles", "crunchy croissant"}
@@ -384,9 +386,12 @@ def business_rule(group: object, item: object, category: str) -> tuple[str, str]
     if g in ("appetizer", "appetizers"):
         return "Appetizers", "Items in an appetizer source group go in Appetizers."
     if APPETIZER_ITEM.search(i):
-        return "Appetizers", f"Wings, gyoza and Karaage Chicken go in Appetizers {LATER_DECISION}."
+        return "Appetizers", f"Wings, gyoza and Karaage Chicken go in Appetizers (Cheena, {LATER_DECISION})."
+    if TAKOYAKI.search(i):
+        return "Appetizers", ("Takoyaki follows the APPETIZER section of the Menu Items List "
+                              f"(Herman, {LATER_DECISION}).")
     if i == "affogato":
-        return "Pastries", f"Affogato goes in Pastries; Affogato Float is a drink {LATER_DECISION}."
+        return "Pastries", f"Affogato goes in Pastries; Affogato Float is a drink (Cheena, {LATER_DECISION})."
     if g in ICE_CREAM_GROUPS or (ICE_CREAM_ITEM.search(i) and not NOT_ICE_CREAM.search(i)):
         return "Add-Ons", "Ice cream goes in Add-Ons."
     if SINGLE_PANCAKE.search(i):

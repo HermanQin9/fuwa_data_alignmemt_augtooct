@@ -103,6 +103,7 @@ class MappingWorkflowTests(unittest.TestCase):
             ("Special Snacks", "Karaage Chicken", "Japanese Eats", "Appetizers"),
             ("Top 10 Picks", "Karaage Chicken", "Japanese Eats", "Appetizers"),
             ("", "Karrage Chicken", "Japanese Eats", "Appetizers"),
+            ("Sides", "Takoyaki", "Japanese Eats", "Appetizers"),
             ("", "3 Chicken Strips", "Add-Ons", "Add-Ons"),
             ("Extra Sweet", "Affogato", "", "Pastries"),
             ("", "Single Pancake", "Pancakes", "Add-Ons"),
