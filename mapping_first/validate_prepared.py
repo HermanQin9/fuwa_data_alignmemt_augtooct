@@ -1,4 +1,9 @@
-"""Independently audit every original cell and reconcile a built report or prepared draft."""
+"""Independently audit every original cell and reconcile a built report or prepared draft.
+
+The report window is read from the report's own Validation sheet, so the same audit works for the
+all-dates draft and for a dated final report: every source row is still checked cell by cell, and
+rows outside the window must be marked as such and kept out of the pivot.
+"""
 import argparse
 import datetime as dt
 import json
@@ -31,11 +36,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mapping", type=Path, default=RESULT / "USA PMix - Menu Mapping.xlsx")
     parser.add_argument("--output", type=Path, default=RESULT / "USA PMix - PMIX Report DRAFT.xlsx")
+    parser.add_argument("--source", type=Path, default=SOURCE)
     args = parser.parse_args()
-    source = openpyxl.load_workbook(SOURCE, read_only=True, data_only=True)
+    source = openpyxl.load_workbook(args.source, read_only=True, data_only=True)
     mapping = openpyxl.load_workbook(args.mapping, read_only=True, data_only=True)
     output = openpyxl.load_workbook(args.output, read_only=True, data_only=True)
     try:
+        stated = {r["Check"]: r["Value"] for r in records(output["Validation"])}
+        first, last = (dt.date.fromisoformat(str(stated[k]))
+                       for k in ("Inclusive start date", "Inclusive end date"))
         master = {}
         mapping_rows = mapping_qty = 0
         for row in records(mapping["Menu Category"]):
@@ -53,7 +62,8 @@ def main():
         source_counts = Counter()
         expected_exceptions = set()
         original_cells = 0
-        all_qty = 0
+        source_qty = 0
+        all_qty = 0  # net Qty inside the window
         for name, group, item, date in [
             ("TOAST", "Menu Group", "Menu Item", "Sent Date"),
             ("SQUARE", "Category", "Item", "Date"),
@@ -84,19 +94,23 @@ def main():
                 location = original[indices["Location"]].strip()
                 location = LOCATION_ALIASES.get(location, location)
                 row_id = (name, excel_row)
-                expected[row_id] = (rule, qty, sale_date, location)
                 source_counts[name] += 1
                 mapping_counts[key] += 1
                 mapping_quantities[key] += qty
-                all_qty += qty
+                source_qty += qty
+                in_window = first <= sale_date <= last
                 for column, value in (
-                    ("Mapped Category", blank(rule["Category"])),
-                    ("Mapped Review Status", rule["Review Status"]),
-                    ("In Report Window", True),
+                    ("Mapped Category", blank(rule["Category"]) if in_window else ""),
+                    ("Mapped Review Status", rule["Review Status"] if in_window else ""),
+                    ("In Report Window", in_window),
                 ):
                     assert blank(copied[dest_headers.index(column)]) == value, (
                         f"{name}!row {excel_row}: wrong {column}"
                     )
+                if not in_window:
+                    continue
+                expected[row_id] = (rule, qty, sale_date, location)
+                all_qty += qty
                 if rule["Category"] and rule["Review Status"] != "Excluded":
                     quarter = (sale_date.month - 1) // 3 + 1
                     period = f"{sale_date.year} Q{quarter}"
@@ -109,7 +123,7 @@ def main():
                 else:
                     expected_exceptions.add(row_id)
         assert mapping_rows == sum(source_counts.values())
-        assert mapping_qty == all_qty
+        assert mapping_qty == source_qty
         for key, rule in master.items():
             assert rule["Rows"] == mapping_counts[key], f"Wrong mapping row count: {key!r}"
             assert rule["Net Qty"] == mapping_quantities[key], f"Wrong mapping Qty: {key!r}"
@@ -166,7 +180,7 @@ def main():
             report_keys.add(key)
             actual_reports[key] += row["Qty sold"]
         assert actual_reports == report_totals
-        metadata = {r["Check"]: r["Value"] for r in records(output["Validation"])}
+        metadata = stated
         for field, value in (
             ("Source item-sales rows", sum(source_counts.values())),
             ("Selected item-sales rows", len(expected)),
@@ -177,10 +191,10 @@ def main():
             ("Exception net Qty", exception_qty),
         ):
             assert metadata[field] == value, f"Incorrect Validation value: {field}"
-        assert source_counts == {"TOAST": 185823, "SQUARE": 6984}
-        assert all_qty == 202865
         result = {
-            "source_rows": dict(source_counts), "source_net_qty": all_qty,
+            "report_window": [first.isoformat(), last.isoformat()],
+            "source_rows": dict(source_counts), "source_net_qty": source_qty,
+            "selected_rows": len(expected), "selected_net_qty": all_qty,
             "original_cells_compared_with_type_check": original_cells,
             "mapping_entries": len(master), "pivot_source_rows": len(seen),
             "pivot_source_net_qty": pivot_qty, "exception_rows": len(exceptions),
@@ -192,7 +206,9 @@ def main():
             "year_quarter_month_checks": "PASS",
             "validation_metadata_checks": "PASS",
             "data_checks": "PASS",
-            "semantic_mapping_approval": "Pending business review",
+            "semantic_mapping_approval": (
+                "Pending business review" if any(r["Review Status"] == "Pending" for r in master.values())
+                else "No Pending entries"),
             "native_pivot_and_filter_tests": "See verify_result.py",
         }
         print(json.dumps(result, indent=2))

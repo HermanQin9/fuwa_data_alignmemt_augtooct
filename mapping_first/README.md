@@ -2,11 +2,13 @@
 
 Two stages, so that a category decision is made once and reused:
 
-1. `map` builds an editable Menu Category master covering every TOAST and SQUARE item.
+1. `map` builds an editable Menu Category master covering every TOAST and SQUARE item, with item
+   names cleaned against Cheena's Menu Items List.
 2. `report` reads only that saved master and builds a native, filterable Excel PMIX report.
 
-Finished output goes in [`../Result/`](../Result/). This folder holds code only. Earlier
-outputs are kept in `../versions/`.
+Finished output goes in [`../Result/`](../Result/). This folder holds code, docs and the two
+decision files (`mapping_overrides.json`, `menu_name_overrides.json`). Earlier outputs and retired
+files are kept in `../versions/`.
 
 ## Current status
 
@@ -49,11 +51,43 @@ Japanese Eats.
 When a rule changes an entry's category, the entry takes the new category as its Menu, so it does
 not keep the path of the category it left. Sandwiches also keep their reference Menu group.
 
+## Cleaning item names with the Menu Items List
+
+`../Menu Items List.xlsx` is Cheena's cleaned menu: one column, with bold cells as section
+headings (PANCAKES, DRINKS - TEA, and so on). `map` compares every entry with it and fills two
+columns, so the master can be filtered instead of checked row by row.
+
+| Menu List Status | Meaning | `Item` |
+|---|---|---|
+| `Listed` | The source name is already on the list exactly as written | unchanged |
+| `Listed - name cleaned` | On the list apart from case, accents, punctuation, `&` or spacing | list spelling |
+| `Close match - review` | A typo or variant judged to be the same product (`menu_name_overrides.json`) | list spelling |
+| `Listed in UNCATEGORIZED only` | Only in the list's UNCATEGORIZED section, which is unsorted and often misspelled | unchanged |
+| `Not in Menu Items List` | No counterpart on the list. `Menu List Match` may say `Possible match, not applied: ...` | unchanged |
+
+`Menu List Match` shows the matched name and its section(s). Only the `Item` column is ever
+respelled; `Source Item` and the Mapping ID stay as exported, and whitespace is always trimmed.
+Nothing here changes a Category and nothing is marked Approved. The first two statuses are
+exact-spelling matches. Items that are not on the list are noted and never guessed at, as Cheena
+asked; most are free text, typos or POS variants such as `(Cold or Hot)`.
+
+`menu_name_overrides.json` is the place for a typo or variant that a person has judged to be the
+same product as a list name. It is empty today, so no `Close match - review` rows exist yet. An
+entry is reversible by deleting its line. Each line holds the Mapping ID, the source name, the
+list name and the reason, and no sales figures. A rebuild fails loudly if a listed override name
+has since been removed from the list.
+
+The list's own spellings are copied as they are, including its typos (for example `Sapporro`,
+`Franch Sparkling Wine`, `Creme Burlee Sauce`). Fix the typo in `Menu Items List.xlsx` and
+rebuild if the report should show the corrected name.
+
 ## Inputs and outputs
 
 - Input: `../USA PMix.xlsx`, sheets `TOAST`, `SQUARE` and `Menu Category`. It is never modified.
+- Input: `../Menu Items List.xlsx`, sheet `USA Menu List`, used by `map` to clean item names.
 - `USA PMix - Menu Mapping.xlsx`: `Menu Category` is the editable master, with one row for each
-  POS sheet, source group and source item. `Allowed Categories` feeds the Category dropdown.
+  POS sheet, source group and source item. `Allowed Categories` feeds the Category dropdown, and
+  `Menu Items List` is a copy of the list the names were checked against.
 - `USA PMix - PMIX Report DRAFT.xlsx`:
   - `PMIX` is a native PivotTable. Rows expand as Category > Menu > Menu group > Item, largest
     first. Columns show `Qty (#)` and `Qty (%)` by year-aware quarter.
@@ -76,7 +110,7 @@ Outputs are never overwritten, so remove or rename an old output before rebuildi
 
 ```powershell
 & 'D:\Anaconda\python.exe' mapping_first\pmix_workflow.py map `
-  --output 'Result\USA PMix - Menu Mapping.xlsx'
+  --output 'Result\USA PMix - Menu Mapping.xlsx'   # --menu-list <file> uses another list
 
 & 'D:\Anaconda\python.exe' mapping_first\pmix_workflow.py report `
   --mapping 'Result\USA PMix - Menu Mapping.xlsx' `
@@ -86,7 +120,8 @@ Outputs are never overwritten, so remove or rename an old output before rebuildi
 
 `prepare` takes the same arguments as `report` and writes the data sheets without a PivotTable.
 
-After review, edit Category, Menu, Menu group, Item and Review Notes in the master. Mark
+After review, edit Category, Menu, Menu group, Item and Review Notes in the master. Filter
+`Menu List Status` for `Not in Menu Items List` to see the items still to be cleaned. Mark
 supported rows `Approved`. Mark genuine exclusions `Excluded` with a reason. Do not edit Mapping
 ID or the source identity columns. Hand edits live only in that saved file, so a new `map` run
 does not include them. Changing the master affects the **next report build**; Excel Refresh
@@ -124,11 +159,14 @@ For an approved report, drop `--draft --all-dates` and give `--start` and `--end
 & 'D:\Anaconda\python.exe' mapping_first\verify_result.py
 ```
 
-- `test_pmix_workflow.py` covers the mapping rules and workbook helpers.
+- `test_pmix_workflow.py` covers the mapping rules, menu-name cleaning and workbook helpers.
 - `validate_prepared.py` compares every original cell and reconciles rows, Qty and all report keys.
 - `verify_result.py` opens a temporary copy in live Excel, drives the real slicers,
   checks each result against an independent recompute, and writes
   `Result/VALIDATION_RESULTS.json`.
+- Both checks read the date window from the report's own `Validation` sheet, so they work for the
+  all-dates draft and for a dated final report. Use `--report`, `--mapping` and `--source` to
+  point them at other files.
 
 These prove the arithmetic and that the rules were applied. They do not prove a category is what
 the business wants; only review can do that.
