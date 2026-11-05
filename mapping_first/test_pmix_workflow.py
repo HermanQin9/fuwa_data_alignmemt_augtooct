@@ -304,6 +304,34 @@ class MappingWorkflowTests(unittest.TestCase):
             self.assertFalse(failing.exists())
             self.assertFalse(failing.with_name("failing.building.xlsx").exists())
 
+    def test_list_section_follows_the_list_and_the_entry_category(self):
+        menu = self.menu_list()
+        for item, category, expected in [
+            ("BLT Sandwich", "Sandwiches", "SANDWICHES"),
+            ("latte", "Drinks", "DRINKS"),                  # curated section beats UNCATEGORIZED
+            ("Tater Tots", "Appetizers", "APPETIZER"),      # listed twice: follow the category
+            ("Tater Tots", "Add-Ons", "ADD-ONS"),
+            ("Tater Tots", "Drinks", "APPETIZER"),          # no match: first section on the list
+            ("Cafe Mocha", "Drinks", workflow.UNSORTED_SECTION),
+            ("Bleh", "", workflow.NOT_LISTED),
+        ]:
+            with self.subTest(item=item, category=category):
+                self.assertEqual(workflow.list_section(menu, item, category), expected)
+
+    def test_menu_list_layout_adds_sections_and_keeps_totals(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            source = self.small_workbook(directory)
+            mapping = Path(directory) / "mapping.xlsx"
+            workflow.make_mapping(source, mapping, self.small_menu_list(directory))
+            output = Path(directory) / "list report.xlsx"
+            audit = workflow.make_report(source, mapping, output, None, None, draft=True,
+                                         all_dates=True, native=False, layout="menu-list")
+            data = pd.read_excel(output, sheet_name="PMIXData", dtype=object)
+        self.assertEqual(audit["Row layout"], "Menu List Section > Item")
+        self.assertEqual(dict(zip(data["Item"], data[workflow.LIST_SECTION])),
+                         {"BLT Sandwich": "SANDWICHES", "Latte": "DRINKS - COFFEE"})
+        self.assertEqual(audit["Selected net Qty"], audit["Pivot net Qty"] + audit["Exception net Qty"])
+
     def test_mapping_dropdown_covers_every_allowed_category(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
             output = Path(directory) / "mapping.xlsx"

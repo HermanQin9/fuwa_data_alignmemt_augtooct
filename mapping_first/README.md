@@ -72,8 +72,9 @@ exact-spelling matches. Items that are not on the list are noted and never guess
 asked; most are free text, typos or POS variants such as `(Cold or Hot)`.
 
 `menu_name_overrides.json` is the place for a typo or variant that a person has judged to be the
-same product as a list name. It is empty today, so no `Close match - review` rows exist yet. An
-entry is reversible by deleting its line. Each line holds the Mapping ID, the source name, the
+same product as a list name. It holds four today, accepted on 2026-11-05: `Calssic Veg Mayo
+Sandwich`, `Deep Fried Chicken Gyoza`, `Chicken Wings (6)` and `Veggi Sandwich`, renamed to their
+list names. An entry is reversible by deleting its block. Each line holds the Mapping ID, the source name, the
 list name and the reason, and no sales figures. A rebuild fails loudly if a listed override name
 has since been removed from the list.
 
@@ -101,6 +102,17 @@ rebuild if the report should show the corrected name.
   - `TOAST` and `SQUARE` keep every input row and column, with mapping status appended.
   - `Exceptions` lists rows outside the pivot. `Location Coverage` gives per-store exception
     Qty and %. `Validation` reconciles pivot Qty plus exception Qty to total Qty.
+- `USA PMix - Menu List Report DRAFT.xlsx` is the same report built with `--layout menu-list`.
+  Rows expand as Menu List Section > Item, following the sections of the Menu Items List
+  (PANCAKES, DRINKS - TEA, and so on). The first slicer is `Menu List Section` instead of
+  `Category`; Location, Month and Week starting are unchanged, as are the `By Location` sheet,
+  the rows in the pivot and every total.
+  - Sections come from the list copy saved in the mapping workbook, matched on `Item`, so the
+    report still reads only the saved master. Items only in UNCATEGORIZED are under
+    `UNCATEGORIZED`; items not on the list are under `Not in Menu Items List`.
+  - A name listed in two sections goes to the one that matches its own Category, otherwise the
+    first. Today that is only `Tater Tots (1 serving)` and `(2 serving)`, under ADD-ONS and
+    APPETIZER.
 
 ## Commands
 
@@ -119,6 +131,15 @@ Outputs are never overwritten, so remove or rename an old output before rebuildi
 ```
 
 `prepare` takes the same arguments as `report` and writes the data sheets without a PivotTable.
+
+The Menu List report uses the same mapping:
+
+```powershell
+& 'D:\Anaconda\python.exe' mapping_first\pmix_workflow.py report --layout menu-list `
+  --mapping 'Result\USA PMix - Menu Mapping.xlsx' `
+  --output 'Result\USA PMix - Menu List Report DRAFT.xlsx' `
+  --draft --all-dates
+```
 
 After review, edit Category, Menu, Menu group, Item and Review Notes in the master. Filter
 `Menu List Status` for `Not in Menu Items List` to see the items still to be cleaned. Mark
@@ -167,6 +188,10 @@ For an approved report, drop `--draft --all-dates` and give `--start` and `--end
 - Both checks read the date window from the report's own `Validation` sheet, so they work for the
   all-dates draft and for a dated final report. Use `--report`, `--mapping` and `--source` to
   point them at other files.
+- For the Menu List report, run `validate_prepared.py --output 'Result\USA PMix - Menu List
+  Report DRAFT.xlsx'` and `verify_result.py --layout menu-list --report` with the same file. The
+  live check works out each sale's section on its own from the saved list copy and writes
+  `Result/VALIDATION_RESULTS - Menu List.json`.
 
 These prove the arithmetic and that the rules were applied. They do not prove a category is what
 the business wants; only review can do that.

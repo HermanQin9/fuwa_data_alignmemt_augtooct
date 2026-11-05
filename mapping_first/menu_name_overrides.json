@@ -1,1 +1,26 @@
-{}
+{
+  "b6629c5f87c41b9eb0a2e581b2ddb64c3011f52469423aaa18f6907c2508a609": {
+    "action": "rename",
+    "source_name": "Calssic Veg Mayo Sandwich",
+    "list_name": "Classic Veg Mayo Sandwich",
+    "reason": "Typo of the listed name; confirmed as the same item by Herman, 2026-11-05."
+  },
+  "dd817364faff5d266fd45e121175ce72b20568bb6b4b8685ea73aff8b853bd43": {
+    "action": "rename",
+    "source_name": "Deep Fried Chicken Gyoza",
+    "list_name": "Deep Fried Chicken Gyoza (6 pcs)",
+    "reason": "Same product without the portion size; confirmed as the same item by Herman, 2026-11-05."
+  },
+  "ed3f911a5fd2b8244ad7ac4d8a40512b1352c753ae0fe3bfbc85825fe8d302eb": {
+    "action": "rename",
+    "source_name": "Chicken Wings (6)",
+    "list_name": "Chicken Wings (6 pcs)",
+    "reason": "Same product, portion written as (6); confirmed as the same item by Herman, 2026-11-05."
+  },
+  "2658dca4b61fab44baab4677338535ac6957e687fe92e9d7f7d629e7d2a89c25": {
+    "action": "rename",
+    "source_name": "Veggi Sandwich",
+    "list_name": "Veggie Sandwich",
+    "reason": "Typo: its only sale is at Aurora, which sells Veggie Sandwich; accepted by Herman, 2026-11-05."
+  }
+}

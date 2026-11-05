@@ -12,6 +12,8 @@
   "entries_with_no_category": 42,
   "report_locations": 19,
   "categories_in_report": 11,
+  "row_layout": "category",
+  "top_level_groups_in_report": 11,
   "date_window": [
     "2026-08-03",
     "2026-10-25"
