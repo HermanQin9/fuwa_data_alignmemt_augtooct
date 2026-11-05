@@ -10,7 +10,6 @@ import datetime as dt
 import hashlib
 import json
 import re
-import sys
 import unicodedata
 from pathlib import Path
 
@@ -28,6 +27,11 @@ CATEGORIES = [
 # Business decision, 2026-10-31: the Square Tucker label is the same store as the Toast one.
 LOCATION_ALIASES = {"Fluffy Fluffy Tucker GA": "Fluffy Fluffy - Tucker"}
 OVERRIDES_FILE = Path(__file__).resolve().parent / "mapping_overrides.json"
+NAME_OVERRIDES_FILE = Path(__file__).resolve().parent / "menu_name_overrides.json"
+MENU_LIST_FILE = ROOT / "Menu Items List.xlsx"
+MENU_LIST_SHEET = "USA Menu List"
+# Cheena's own pile of names she has not placed or cleaned yet; never used as a clean spelling.
+UNSORTED_SECTION = "UNCATEGORIZED"
 DECISION_EVIDENCE = "Business decision 2026-10-31"
 AUDIT_EVIDENCE = "Audit proposal"
 SOURCE_COLUMNS = {
@@ -38,8 +42,14 @@ KEY_COLUMNS = ["POS Sheet", "Source Group", "Source Item"]
 MAPPING_COLUMNS = [
     "Mapping ID", *KEY_COLUMNS, "Category", "Menu", "Menu group", "Item",
     "Review Status", "Evidence", "Candidate Paths", "Rows", "Net Qty",
-    "Locations", "Review Notes",
+    "Locations", "Review Notes", "Menu List Status", "Menu List Match",
 ]
+# Menu List Status values; Cheena filters on these.
+LISTED = "Listed"
+LISTED_CLEANED = "Listed - name cleaned"
+CLOSE_MATCH = "Close match - review"
+UNSORTED_ONLY = "Listed in UNCATEGORIZED only"
+NOT_LISTED = "Not in Menu Items List"
 TOP_CATEGORIES = {
     "All Pancakes": "Pancakes",
     "All Fluffy All Day": "Fluffy All Day",
@@ -64,6 +74,109 @@ def normalized(value: object) -> str:
 def mapping_id(sheet: str, group: object, item: object) -> str:
     key = json.dumps([sheet, text(group), text(item)], ensure_ascii=True)
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
+
+
+def tidy(value: object) -> str:
+    """Trim a name and collapse runs of whitespace, so 'X ' and 'X' are one pivot item."""
+    return re.sub(r"\s+", " ", text(value)).strip()
+
+
+def read_menu_list(path: Path) -> list[tuple[str, str]]:
+    """(section, name) pairs from the Menu Items List. Bold cells are section headings."""
+    book = openpyxl.load_workbook(path, data_only=True)
+    try:
+        section, entries = "", []
+        for (cell,) in book[MENU_LIST_SHEET].iter_rows(min_col=1, max_col=1):
+            name = tidy(cell.value)
+            if not name:
+                continue
+            if cell.font.b:
+                section = name
+            else:
+                entries.append((section, name))
+    finally:
+        book.close()
+    if not entries:
+        raise ValueError(f"No menu names found in {path}")
+    return entries
+
+
+class MenuList:
+    """The menu names, indexed by normalized spelling.
+
+    Names under UNCATEGORIZED are kept apart: they are unsorted and often misspelled, so they
+    are evidence that an item is known, not a spelling to copy.
+    """
+
+    def __init__(self, entries: list[tuple[str, str]]) -> None:
+        self.entries = entries
+        self.names: dict[str, tuple[str, list[str]]] = {}
+        self.unsorted: dict[str, str] = {}
+        for section, name in entries:
+            key = normalized(name)
+            if not key:
+                continue
+            if section == UNSORTED_SECTION:
+                self.unsorted.setdefault(key, name)
+            elif key not in self.names:
+                self.names[key] = (name, [section])
+            elif section not in self.names[key][1]:
+                self.names[key][1].append(section)
+
+    def find(self, *spellings: object) -> tuple[str, list[str]] | None:
+        for spelling in spellings:
+            hit = self.names.get(normalized(spelling))
+            if hit:
+                return hit
+        return None
+
+    def find_unsorted(self, *spellings: object) -> str | None:
+        for spelling in spellings:
+            hit = self.unsorted.get(normalized(spelling))
+            if hit:
+                return hit
+        return None
+
+    def label(self, name: str) -> str:
+        """'Name [SECTION / SECTION]' for a name that is on the list."""
+        listed, sections = self.names[normalized(name)]
+        return f"{listed} [{' / '.join(sections)}]"
+
+
+def load_name_overrides() -> dict:
+    """Judged close matches keyed by Mapping ID; holds menu names only, no sales quantities."""
+    with NAME_OVERRIDES_FILE.open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def check_menu_name(menu_list: MenuList, name_overrides: dict, ident: str,
+                    source_item: object, name: object) -> tuple[str, str, str]:
+    """Compare one entry with the Menu Items List. Returns (clean name, status, match).
+
+    Only a name that is on the list after ignoring case, accents, punctuation and '&' is
+    respelled automatically. A judged close match is respelled too but flagged for review.
+    Anything else keeps its own name and is noted as not listed.
+    """
+    name = tidy(name)
+    hit = menu_list.find(source_item, name)
+    if hit:
+        listed = hit[0]
+        # "Listed" means the source text already was the list spelling, extra spaces included.
+        status = LISTED if listed == text(source_item) else LISTED_CLEANED
+        return listed, status, menu_list.label(listed)
+    pick = name_overrides.get(ident)
+    if pick:
+        if normalized(pick["list_name"]) not in menu_list.names:
+            raise ValueError(f"menu_name_overrides.json: {pick['list_name']!r} is no longer in the "
+                             f"Menu Items List (entry {text(source_item)!r}); update the file")
+        label = menu_list.label(pick["list_name"])
+        if pick["action"] == "rename":
+            return menu_list.names[normalized(pick["list_name"])][0], CLOSE_MATCH, label
+        return name, NOT_LISTED, f"Possible match, not applied: {label}"
+    unsorted = menu_list.find_unsorted(source_item, name)
+    if unsorted:
+        return name, UNSORTED_ONLY, unsorted
+    return name, NOT_LISTED, ""
 
 
 def load_sources(source: Path) -> tuple[dict[str, pd.DataFrame], pd.DataFrame]:
@@ -249,8 +362,11 @@ def load_overrides() -> dict:
         return json.load(handle)
 
 
-def propose_mapping(source: pd.DataFrame, reference: pd.DataFrame) -> pd.DataFrame:
+def propose_mapping(source: pd.DataFrame, reference: pd.DataFrame,
+                    menu_list: MenuList | None = None,
+                    name_overrides: dict | None = None) -> pd.DataFrame:
     overrides = load_overrides()
+    name_overrides = name_overrides or {}
     lookup = {}
     for record in reference.to_dict("records"):
         lookup.setdefault(normalized(record["Item"]), []).append(record)
@@ -306,6 +422,10 @@ def propose_mapping(source: pd.DataFrame, reference: pd.DataFrame) -> pd.DataFra
             menu = final
             menu_group = selected["Menu group"] if selected and final == "Sandwiches" else own_group
             name = selected["Item"] if selected else item
+        list_status = list_match = ""
+        if menu_list is not None:
+            name, list_status, list_match = check_menu_name(
+                menu_list, name_overrides, ident, item, name)
         rows.append({
             "Mapping ID": ident, "POS Sheet": sheet, "Source Group": group,
             "Source Item": item, "Category": final, "Menu": menu,
@@ -315,6 +435,7 @@ def propose_mapping(source: pd.DataFrame, reference: pd.DataFrame) -> pd.DataFra
             "Rows": len(frame), "Net Qty": frame["Qty"].sum(),
             "Locations": "; ".join(sorted(frame["Location"].unique())),
             "Review Notes": notes,
+            "Menu List Status": list_status, "Menu List Match": list_match,
         })
     return pd.DataFrame(rows, columns=MAPPING_COLUMNS)
 
@@ -326,7 +447,8 @@ def write_table(writer, name: str, frame: pd.DataFrame, autofilter: bool = True)
     if autofilter:
         ws.autofilter(0, 0, len(frame), len(frame.columns) - 1)
     ws.set_column(0, len(frame.columns) - 1, 22)
-    for col in ("Source Item", "Item", "Candidate Paths", "Review Notes", "Locations"):
+    for col in ("Source Item", "Item", "Candidate Paths", "Review Notes", "Locations",
+                "Menu List Status", "Menu List Match", "Menu Item"):
         if col in frame:
             index = frame.columns.get_loc(col)
             ws.set_column(index, index, 42)
@@ -341,12 +463,15 @@ def write_table(writer, name: str, frame: pd.DataFrame, autofilter: bool = True)
                     ws.write_string(row, column, "")
 
 
-def make_mapping(source_path: Path, output: Path) -> dict:
+def make_mapping(source_path: Path, output: Path, menu_list_path: Path = MENU_LIST_FILE) -> dict:
     if output.exists():
         raise FileExistsError(f"Refusing to overwrite an editable mapping: {output}")
+    if not menu_list_path.exists():
+        raise FileNotFoundError(f"Menu Items List not found: {menu_list_path}")
     _, source = load_sources(source_path)
     reference = read_reference(source_path)
-    mapping = propose_mapping(source, reference)
+    menu_entries = read_menu_list(menu_list_path)
+    mapping = propose_mapping(source, reference, MenuList(menu_entries), load_name_overrides())
     coverage = source.groupby(["POS Sheet", "Location"], dropna=False).agg(
         Rows=("Qty", "size"), Net_Qty=("Qty", "sum"),
         First_Date=("Date", "min"), Last_Date=("Date", "max"),
@@ -359,6 +484,8 @@ def make_mapping(source_path: Path, output: Path) -> dict:
         write_table(writer, "Reference Outline", reference)
         write_table(writer, "Source Coverage", coverage)
         write_table(writer, "Allowed Categories", pd.DataFrame({"Category": CATEGORIES}))
+        write_table(writer, "Menu Items List",
+                    pd.DataFrame(menu_entries, columns=["Section", "Menu Item"]))
         ws = writer.sheets["Menu Category"]
         ws.data_validation(1, 4, len(mapping), 4, {
             "validate": "list", "source": f"='Allowed Categories'!$A$2:$A${len(CATEGORIES) + 1}",
@@ -368,6 +495,7 @@ def make_mapping(source_path: Path, output: Path) -> dict:
         })
     return {"mapping_rows": len(mapping), "source_rows": len(source),
             "net_qty": int(source["Qty"].sum()),
+            "menu_list_status": mapping["Menu List Status"].value_counts().to_dict(),
             "suggested_rows": int(mapping["Category"].ne("").sum()),
             "excluded_rows": int(mapping["Review Status"].eq("Excluded").sum()),
             "unresolved_rows": int((mapping["Category"].eq("")
@@ -449,7 +577,7 @@ def sort_largest_first(pivot) -> None:
         category.PivotItems(index).ShowDetail = False
 
 
-def create_pivot(path: Path, start: str, end: str) -> None:
+def create_pivot(path: Path) -> None:
     """Build the two PivotTables and the slicers that drive both.
 
     Slicers filter fields that are not in the table, so the PivotTables carry no page fields.
@@ -611,53 +739,57 @@ def make_report(source_path: Path, mapping_path: Path, output: Path,
     temporary = output.with_name(output.stem + ".building.xlsx")
     if temporary.exists():
         raise FileExistsError(f"Previous unfinished build exists: {temporary}")
-    with pd.ExcelWriter(temporary, engine="xlsxwriter",
-                        datetime_format="yyyy-mm-dd hh:mm:ss",
-                        engine_kwargs={"options": {"strings_to_formulas": False,
-                                                   "strings_to_urls": False}}) as writer:
-        ws = writer.book.add_worksheet("PMIX")
-        ws.write(0, 0, audit["Status"] if native else "PREPARED DATA ONLY - NOT AN INTERACTIVE REPORT")
-        ws.write(1, 0, f"Window: {start} through {end}, inclusive")
-        ws.write(2, 0, "Expand + beside Category, Menu and Menu group for item detail.")
-        ws.write(3, 0, "Qty (#) = net item quantity; Qty (%) = share of filtered classified quantity.")
-        ws.write(4, 0, "EXCEPTIONS (not in the PivotTable, not filtered by slicers): "
-                       f"{audit['Exception net Qty']:,} Qty in {audit['Exception rows (not in pivot)']:,} rows "
-                       f"= {exc_pct:.2%} of selected Qty. Per-store figures: Location Coverage sheet.")
-        ws.write(5, 0, "Unresolved/excluded rows are listed in Exceptions; see Validation for reconciliation.")
-        ws.write(6, 0, "Location: nothing selected means ALL locations. Use the funnel icon on a slicer "
-                       "to clear it. The By Location sheet shows every item in every location.")
-        ws.freeze_panes(0, 1)
+    try:
+        with pd.ExcelWriter(temporary, engine="xlsxwriter",
+                            datetime_format="yyyy-mm-dd hh:mm:ss",
+                            engine_kwargs={"options": {"strings_to_formulas": False,
+                                                       "strings_to_urls": False}}) as writer:
+            ws = writer.book.add_worksheet("PMIX")
+            ws.write(0, 0, audit["Status"] if native else "PREPARED DATA ONLY - NOT AN INTERACTIVE REPORT")
+            ws.write(1, 0, f"Window: {start} through {end}, inclusive")
+            ws.write(2, 0, "Expand + beside Category, Menu and Menu group for item detail.")
+            ws.write(3, 0, "Qty (#) = net item quantity; Qty (%) = share of filtered classified quantity.")
+            ws.write(4, 0, "EXCEPTIONS (not in the PivotTable, not filtered by slicers): "
+                           f"{audit['Exception net Qty']:,} Qty in {audit['Exception rows (not in pivot)']:,} rows "
+                           f"= {exc_pct:.2%} of selected Qty. Per-store figures: Location Coverage sheet.")
+            ws.write(5, 0, "Unresolved/excluded rows are listed in Exceptions; see Validation for reconciliation.")
+            ws.write(6, 0, "Location: nothing selected means ALL locations. Use the funnel icon on a slicer "
+                           "to clear it. The By Location sheet shows every item in every location.")
+            ws.freeze_panes(0, 1)
+            if native:
+                grid = writer.book.add_worksheet(BY_LOCATION)
+                grid.write(0, 0, audit["Status"])
+                grid.write(1, 0, f"Window: {start} through {end}, inclusive")
+                grid.write(2, 0, "Every item in every location. The All locations column and row add up every store shown.")
+                grid.write(3, 0, "Filter with the Category, Month and Week starting slicers here, or the Location slicer on PMIX.")
+                grid.freeze_panes(0, 1)
+                grid.write(4, 0, "Qty (#) = net item quantity. Rows listed in Exceptions are not included.")
+            fields = ["Location", "Date", "Year", "Period", "Month", "Week starting", "Category", "Menu",
+                      "Menu group", "Item", "Qty", "POS Sheet", "Source Row",
+                      "Mapping ID", "Review Status"]
+            write_table(writer, "PMIXData", data[fields], autofilter=False)
+            writer.sheets["PMIXData"].add_table(0, 0, len(data), len(fields) - 1, {
+                "name": "PMIXData", "columns": [{"header": c} for c in fields],
+            })
+            write_table(writer, "Menu Category", mapping)
+            write_table(writer, "Report Data", report_data)
+            write_table(writer, "Exceptions", exceptions)
+            write_table(writer, "Location Coverage", coverage)
+            write_table(writer, "Validation", pd.DataFrame(audit.items(), columns=["Check", "Value"]))
+            for name, frame in sheets.items():
+                copied = frame.copy()
+                subset = mapped[mapped["POS Sheet"].eq(name)].set_index("Source Row")
+                for col in ("Category", "Review Status", "Exception Reason"):
+                    copied["Mapped " + col] = [subset.at[r, col] if r in subset.index else ""
+                                              for r in range(2, len(copied) + 2)]
+                copied["In Report Window"] = [r in subset.index for r in range(2, len(copied) + 2)]
+                write_table(writer, name, copied)
         if native:
-            grid = writer.book.add_worksheet(BY_LOCATION)
-            grid.write(0, 0, audit["Status"])
-            grid.write(1, 0, f"Window: {start} through {end}, inclusive")
-            grid.write(2, 0, "Every item in every location. The All locations column and row add up every store shown.")
-            grid.write(3, 0, "Filter with the Category, Month and Week starting slicers here, or the Location slicer on PMIX.")
-            grid.freeze_panes(0, 1)
-            grid.write(4, 0, "Qty (#) = net item quantity. Rows listed in Exceptions are not included.")
-        fields = ["Location", "Date", "Year", "Period", "Month", "Week starting", "Category", "Menu",
-                  "Menu group", "Item", "Qty", "POS Sheet", "Source Row",
-                  "Mapping ID", "Review Status"]
-        write_table(writer, "PMIXData", data[fields], autofilter=False)
-        writer.sheets["PMIXData"].add_table(0, 0, len(data), len(fields) - 1, {
-            "name": "PMIXData", "columns": [{"header": c} for c in fields],
-        })
-        write_table(writer, "Menu Category", mapping)
-        write_table(writer, "Report Data", report_data)
-        write_table(writer, "Exceptions", exceptions)
-        write_table(writer, "Location Coverage", coverage)
-        write_table(writer, "Validation", pd.DataFrame(audit.items(), columns=["Check", "Value"]))
-        for name, frame in sheets.items():
-            copied = frame.copy()
-            subset = mapped[mapped["POS Sheet"].eq(name)].set_index("Source Row")
-            for col in ("Category", "Review Status", "Exception Reason"):
-                copied["Mapped " + col] = [subset.at[r, col] if r in subset.index else ""
-                                          for r in range(2, len(copied) + 2)]
-            copied["In Report Window"] = [r in subset.index for r in range(2, len(copied) + 2)]
-            write_table(writer, name, copied)
-    if native:
-        create_pivot(temporary, start, end)
-    temporary.rename(output)
+            create_pivot(temporary)
+        temporary.rename(output)
+    except BaseException:
+        temporary.unlink(missing_ok=True)  # a failed build must not block the next run
+        raise
     return audit
 
 
@@ -667,6 +799,8 @@ def main() -> None:
     commands = parser.add_subparsers(dest="command", required=True)
     build = commands.add_parser("map", help="Build a new editable Menu Category master")
     build.add_argument("--output", type=Path, required=True)
+    build.add_argument("--menu-list", type=Path, default=MENU_LIST_FILE,
+                       help="Menu Items List workbook used to clean item names")
     for command, help_text in (
         ("report", "Read saved mapping and build native Excel pivot"),
         ("prepare", "Prepare auditable pivot source data WITHOUT an interactive report"),
@@ -680,7 +814,7 @@ def main() -> None:
         report.add_argument("--all-dates", action="store_true", help="Explicitly use all supplied dates for a draft")
     args = parser.parse_args()
     if args.command == "map":
-        result = make_mapping(args.source, args.output)
+        result = make_mapping(args.source, args.output, args.menu_list)
     else:
         result = make_report(args.source, args.mapping, args.output, args.start,
                              args.end, args.draft, args.all_dates, native=args.command == "report")

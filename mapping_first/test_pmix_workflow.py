@@ -176,11 +176,141 @@ class MappingWorkflowTests(unittest.TestCase):
         self.assertEqual(source["Location"].unique().tolist(), ["Fluffy Fluffy - Tucker"])
         self.assertEqual(source["Source Location"].nunique(), 2)
 
+    def small_menu_list(self, directory):
+        book = openpyxl.Workbook()
+        sheet = book.active
+        sheet.title = workflow.MENU_LIST_SHEET
+        for value, bold in (
+            ("MENU", True), ("SANDWICHES", True), ("BLT Sandwich", False), ("Ham and Cheese Sandwich", False),
+            ("DRINKS - COFFEE", True), ("Latte ", False), ("Crème Brulee", False),
+            ("UNCATEGORIZED", True), ("LATTE", False), ("Cafe Mocha", False), ("Ham & Cheese Sandwich", False),
+        ):
+            sheet.append([value])
+            sheet.cell(sheet.max_row, 1).font = openpyxl.styles.Font(bold=bold)
+        path = Path(directory) / "menu list.xlsx"
+        book.save(path)
+        return path
+
+    def menu_list(self):
+        return workflow.MenuList([
+            ("SANDWICHES", "BLT Sandwich"), ("SANDWICHES", "Ham and Cheese Sandwich"),
+            ("DRINKS", "Latte"), ("PASTRIES", "Crème Brulee"), ("APPETIZER", "Tater Tots"),
+            ("ADD-ONS", "Tater Tots"),
+            (workflow.UNSORTED_SECTION, "LATTE"), (workflow.UNSORTED_SECTION, "Cafe Mocha"),
+        ])
+
+    def test_menu_list_reads_sections_from_bold_cells_and_tidies_names(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            entries = workflow.read_menu_list(self.small_menu_list(directory))
+        self.assertEqual(entries[:3], [("SANDWICHES", "BLT Sandwich"),
+                                       ("SANDWICHES", "Ham and Cheese Sandwich"),
+                                       ("DRINKS - COFFEE", "Latte")])
+        self.assertIn((workflow.UNSORTED_SECTION, "Cafe Mocha"), entries)
+        self.assertNotIn("MENU", [name for _, name in entries])
+
+    def test_listed_names_take_the_list_spelling(self):
+        menu = self.menu_list()
+        for source, expected, status in [
+            ("BLT Sandwich", "BLT Sandwich", workflow.LISTED),
+            ("Ham & Cheese Sandwich", "Ham and Cheese Sandwich", workflow.LISTED_CLEANED),
+            ("  blt   sandwich ", "BLT Sandwich", workflow.LISTED_CLEANED),
+            ("BLT  Sandwich", "BLT Sandwich", workflow.LISTED_CLEANED),  # extra space is a cleaning
+            ("Creme Brulee", "Crème Brulee", workflow.LISTED_CLEANED),
+            ("#Latte", "Latte", workflow.LISTED_CLEANED),
+            ("LATTE", "Latte", workflow.LISTED_CLEANED),  # curated spelling beats UNCATEGORIZED
+        ]:
+            with self.subTest(source=source):
+                name, got, match = workflow.check_menu_name(menu, {}, "id", source, source)
+                self.assertEqual((name, got), (expected, status))
+                self.assertIn("[", match)
+
+    def test_a_name_on_two_sections_reports_both(self):
+        _, _, match = workflow.check_menu_name(self.menu_list(), {}, "id", "Tater Tots", "Tater Tots")
+        self.assertEqual(match, "Tater Tots [APPETIZER / ADD-ONS]")
+
+    def test_uncategorized_only_is_noted_but_not_respelled(self):
+        name, status, match = workflow.check_menu_name(
+            self.menu_list(), {}, "id", "cafe  mocha", "cafe  mocha")
+        self.assertEqual((name, status, match), ("cafe mocha", workflow.UNSORTED_ONLY, "Cafe Mocha"))
+
+    def test_unlisted_names_keep_their_own_spelling_and_get_a_note(self):
+        name, status, match = workflow.check_menu_name(
+            self.menu_list(), {}, "id", "Bleh ", "Bleh ")
+        self.assertEqual((name, status, match), ("Bleh", workflow.NOT_LISTED, ""))
+
+    def test_judged_close_match_renames_and_a_suggestion_does_not(self):
+        menu = self.menu_list()
+        overrides = {
+            "typo": {"action": "rename", "list_name": "Latte", "reason": "typo"},
+            "maybe": {"action": "suggest", "list_name": "BLT Sandwich", "reason": "unsure"},
+        }
+        name, status, match = workflow.check_menu_name(menu, overrides, "typo", "Lattte", "Lattte")
+        self.assertEqual((name, status), ("Latte", workflow.CLOSE_MATCH))
+        self.assertIn("Latte [DRINKS]", match)
+        name, status, match = workflow.check_menu_name(menu, overrides, "maybe", "BLT Wrap", "BLT Wrap")
+        self.assertEqual((name, status), ("BLT Wrap", workflow.NOT_LISTED))
+        self.assertTrue(match.startswith("Possible match, not applied: BLT Sandwich"))
+
+    def test_override_for_a_name_no_longer_listed_fails_loudly(self):
+        overrides = {"id": {"action": "rename", "list_name": "Gone", "reason": "x"}}
+        with self.assertRaisesRegex(ValueError, "no longer in the Menu Items List"):
+            workflow.check_menu_name(self.menu_list(), overrides, "id", "Gonee", "Gonee")
+
+    def test_without_a_menu_list_names_and_columns_are_untouched(self):
+        self.assertEqual(self.mapping["Menu List Status"].unique().tolist(), [""])
+        self.assertEqual(self.mapping.iloc[0]["Item"], "Signature Pancakes")
+
+    def test_mapping_applies_the_menu_list_to_item_names(self):
+        source = self.source.iloc[[0]].copy()
+        source["Source Item"] = "signature  pancakes"
+        source["Mapping ID"] = workflow.mapping_id("TOAST", "Pancakes", "signature  pancakes")
+        menu = workflow.MenuList([("PANCAKES", "Signature Pancakes")])
+        row = workflow.propose_mapping(source, self.reference, menu, {}).iloc[0]
+        self.assertEqual((row["Item"], row["Menu List Status"]), ("Signature Pancakes", workflow.LISTED_CLEANED))
+        self.assertEqual(row["Source Item"], "signature  pancakes")  # identity is never edited
+
+    def test_name_overrides_file_is_well_formed(self):
+        overrides = workflow.load_name_overrides()
+        for ident, pick in overrides.items():
+            with self.subTest(ident=ident):
+                self.assertRegex(ident, r"^[0-9a-f]{64}$")
+                self.assertIn(pick["action"], ("rename", "suggest"))
+                self.assertTrue(pick["list_name"].strip() and pick["reason"].strip())
+        if workflow.MENU_LIST_FILE.exists():
+            menu = workflow.MenuList(workflow.read_menu_list(workflow.MENU_LIST_FILE))
+            missing = {p["list_name"] for p in overrides.values()
+                       if workflow.normalized(p["list_name"]) not in menu.names}
+            self.assertEqual(missing, set())
+
+    def test_prepare_builds_and_a_failed_build_leaves_nothing_behind(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            source = self.small_workbook(directory)
+            mapping = Path(directory) / "mapping.xlsx"
+            workflow.make_mapping(source, mapping, self.small_menu_list(directory))
+            output = Path(directory) / "report.xlsx"
+            audit = workflow.make_report(source, mapping, output, None, None,
+                                         draft=True, all_dates=True, native=False)
+            self.assertTrue(output.exists())
+            self.assertEqual(audit["Selected net Qty"], audit["Pivot net Qty"] + audit["Exception net Qty"])
+            failing = Path(directory) / "failing.xlsx"
+            real = workflow.write_table
+            workflow.write_table = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom"))
+            try:
+                with self.assertRaisesRegex(RuntimeError, "boom"):
+                    workflow.make_report(source, mapping, failing, None, None,
+                                         draft=True, all_dates=True, native=False)
+            finally:
+                workflow.write_table = real
+            self.assertFalse(failing.exists())
+            self.assertFalse(failing.with_name("failing.building.xlsx").exists())
+
     def test_mapping_dropdown_covers_every_allowed_category(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
             output = Path(directory) / "mapping.xlsx"
-            result = workflow.make_mapping(self.small_workbook(directory), output)
+            result = workflow.make_mapping(self.small_workbook(directory), output,
+                                           self.small_menu_list(directory))
             self.assertEqual(result["mapping_rows"], 2)
+            self.assertEqual(result["menu_list_status"], {workflow.LISTED: 2})
             book = openpyxl.load_workbook(output)
             try:
                 listed = [row[0].value for row in book["Allowed Categories"].iter_rows(min_row=2)]

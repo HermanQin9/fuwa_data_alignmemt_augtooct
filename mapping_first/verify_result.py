@@ -2,10 +2,10 @@
 
 Works on a temporary copy, so the delivered workbook is never saved or changed. It drives the
 real slicers, then compares every result with totals calculated directly from
-USA PMix.xlsx plus the saved mapping. Writes Result/VALIDATION_RESULTS.json, which holds overall
-totals and pass/fail results only.
+USA PMix.xlsx plus the saved mapping, for the date window the report states on its Validation
+sheet. Writes Result/VALIDATION_RESULTS.json, which holds overall totals and pass/fail results only.
 """
-import datetime as dt
+import argparse
 import hashlib
 import json
 import shutil
@@ -14,6 +14,7 @@ from pathlib import Path
 
 import re
 
+import openpyxl
 import pandas as pd
 import win32com.client
 
@@ -27,14 +28,28 @@ COLUMNS = {"TOAST": ("Menu Group", "Menu Item", "Sent Date"), "SQUARE": ("Catego
 
 
 def mapping_id(sheet, group, item):
-    key = json.dumps([sheet, "" if pd.isna(group) else str(group), item], ensure_ascii=True)
+    # Same identity as pmix_workflow.mapping_id, restated so this audit stays independent.
+    key = json.dumps([sheet, "" if pd.isna(group) else str(group), "" if pd.isna(item) else str(item)],
+                     ensure_ascii=True)
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
-def expected_rows():
+def stated_window(report):
+    """Status and inclusive window written on the report's own Validation sheet."""
+    book = openpyxl.load_workbook(report, read_only=True, data_only=True)
+    try:
+        stated = {row[0]: row[1] for row in book["Validation"].iter_rows(min_row=2, values_only=True)}
+    finally:
+        book.close()
+    return (stated["Status"], pd.Timestamp(stated["Inclusive start date"]),
+            pd.Timestamp(stated["Inclusive end date"]))
+
+
+def expected_rows(source, mapping_path, first, last):
     parts = []
     for sheet, (group, item, date) in COLUMNS.items():
-        frame = pd.read_excel(SOURCE, sheet_name=sheet, dtype=object)
+        # keep_default_na=False: a source group that is literally "None" or "NA" is text, not blank.
+        frame = pd.read_excel(source, sheet_name=sheet, dtype=object, keep_default_na=False)
         dates = pd.to_datetime(frame[date])
         parts.append(pd.DataFrame({
             "id": [mapping_id(sheet, g, i) for g, i in zip(frame[group], frame[item])],
@@ -45,7 +60,9 @@ def expected_rows():
             "week": (dates.dt.normalize() - pd.to_timedelta(dates.dt.weekday, unit="D")).dt.strftime("%Y-%m-%d"),
         }))
     rows = pd.concat(parts, ignore_index=True)
-    mapping = pd.read_excel(MAPPING, dtype=object).fillna("")
+    rows = rows[rows["day"].between(first, last)].reset_index(drop=True)
+    mapping = pd.read_excel(mapping_path, sheet_name="Menu Category", dtype=object,
+                            keep_default_na=False)
     rows = rows.merge(mapping[["Mapping ID", "Category", "Review Status"]],
                       left_on="id", right_on="Mapping ID", how="left", validate="many_to_one")
     assert rows["Category"].notna().all(), "A source row has no mapping"
@@ -106,8 +123,8 @@ def overlaps(a, b):
                 or a[1] + a[3] <= b[1] or b[1] + b[3] <= a[1])
 
 
-def run_excel(rows):
-    classified = rows[rows["Category"].ne("")]
+def run_excel(rows, report):
+    classified = rows[rows["Category"].ne("") & rows["Review Status"].ne("Excluded")]
     checks, failures = {}, []
 
     def check(name, got, want):
@@ -119,7 +136,7 @@ def run_excel(rows):
     book = None
     with tempfile.TemporaryDirectory() as directory:
         copy = Path(directory) / "report_copy.xlsx"
-        shutil.copy2(REPORT, copy)
+        shutil.copy2(report, copy)
         try:
             excel.Visible = False
             excel.DisplayAlerts = False
@@ -161,17 +178,21 @@ def run_excel(rows):
             live.clear()
 
             stores = sorted(classified["location"].unique())
-            pick_stores, pick_cats = set(stores[:3]), {"Pancakes", "Sandwiches"}
+            months = sorted(classified["month"].unique())
+            pick_stores = set(stores[:3])
+            pick_cats = set(sorted(classified["Category"].unique())[:2])
+            pick_month = months[len(months) // 2]
             live.choose("Location", pick_stores)
             live.choose("Category", pick_cats)
-            live.choose("Month", {"2026-09"})
+            live.choose("Month", {pick_month})
             wanted = classified[classified["location"].isin(pick_stores)
                                 & classified["Category"].isin(pick_cats)
-                                & classified["month"].eq("2026-09")]
+                                & classified["month"].eq(pick_month)]
             check("several stores, categories and a month", live.total(), int(wanted["qty"].sum()))
             live.clear()
 
-            weeks = {"2026-09-07", "2026-09-14"}
+            all_weeks = sorted(classified["week"].unique())
+            weeks = set(all_weeks[1:3] or all_weeks[:1])  # a one-week report has only one
             live.choose("Week starting", weeks)
             wanted = classified[classified["week"].isin(weeks)]
             check("week range", live.total(), int(wanted["qty"].sum()))
@@ -182,7 +203,7 @@ def run_excel(rows):
             live.clear()
             check("all filters cleared", live.total(), int(classified["qty"].sum()))
 
-            item = pivot.PivotFields("Category").PivotItems("Sandwiches")
+            item = pivot.PivotFields("Category").PivotItems(categories[0])
             collapsed_rows = pivot.TableRange1.Rows.Count
             item.ShowDetail = True
             expanded_rows = pivot.TableRange1.Rows.Count
@@ -215,12 +236,18 @@ def run_excel(rows):
 
 
 def main():
-    rows, mapping = expected_rows()
-    checks, failures = run_excel(rows)
-    classified = rows[rows["Category"].ne("")]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--report", type=Path, default=REPORT)
+    parser.add_argument("--mapping", type=Path, default=MAPPING)
+    parser.add_argument("--source", type=Path, default=SOURCE)
+    args = parser.parse_args()
+    status, first, last = stated_window(args.report)
+    rows, mapping = expected_rows(args.source, args.mapping, first, last)
+    checks, failures = run_excel(rows, args.report)
+    classified = rows[rows["Category"].ne("") & rows["Review Status"].ne("Excluded")]
     blank = mapping[mapping["Category"].eq("")]
     result = {
-        "status": "DRAFT - all entries still need business approval",
+        "status": status,
         "source_rows": len(rows),
         "source_net_qty": int(rows["qty"].sum()),
         "pivot_rows": len(classified),
@@ -233,7 +260,7 @@ def main():
         "entries_with_no_category": len(blank),
         "report_locations": int(rows["location"].nunique()),
         "categories_in_report": int(classified["Category"].nunique()),
-        "date_window": [str(rows["day"].min().date()), str(rows["day"].max().date())],
+        "date_window": [str(first.date()), str(last.date())],
         "live_excel_checks": checks,
         "live_excel_checks_run": sum(checks.values()),
         "live_excel_failures": failures,

@@ -14,6 +14,10 @@ the mapping.
 The report opens on `PMIX`, the main table. The `By Location` sheet shows every item in every
 location, with an All locations total. The same slicers drive both sheets.
 
+In the mapping workbook, `Menu List Status` and `Menu List Match` show which items are on Cheena's
+`Menu Items List.xlsx`. Filter `Menu List Status` for `Not in Menu Items List` to see the items
+that still need a clean name. Item names were cleaned against that list; categories were not changed.
+
 The repository is public, so the workbooks stay on the local machine. They hold store sales data
 and are ignored by Git.
 

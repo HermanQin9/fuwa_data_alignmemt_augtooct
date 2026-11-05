@@ -2,12 +2,17 @@
 
 ## Auto upload to GitHub
 - Remote: `origin` = https://github.com/HermanQin9/fuwa_data_alignmemt_augtooct.git (public repo).
-- Work on the branch `feature/data-alignment`. Never commit or push to `main` directly.
+- `feature/data-alignment` is the base branch. Never commit or push to `main` directly.
+- Each piece of work goes on its own `feature/*` branch cut from `feature/data-alignment`
+  (for example `feature/menu-list-cleanup`). Small fixes may go straight on `feature/data-alignment`.
 - After finishing any change to code, tests, docs or this file, and once tests pass
-  (`python mapping_first/test_pmix_workflow.py`), commit and push to `origin feature/data-alignment`
-  without asking again. Use a short message describing the change.
+  (`python mapping_first/test_pmix_workflow.py`), commit and push the current `feature/*` branch to
+  `origin` without asking again. Use a short message describing the change.
+- When a `feature/*` branch is finished, open a pull request into `feature/data-alignment`.
+  Merge it only when the user says so.
 - End commit messages with the attribution lines given in the session's system reminder.
-- Never use `--force`, `--no-verify`, or push to another branch without being asked.
+- Never use `--force` or `--no-verify`, and never push to `main` or a branch that is not
+  `feature/*` without being asked.
 
 ## Never upload (repo is public)
 - Excel/CSV files (`*.xlsx`, `*.xls`, `*.csv`) contain store sales data. They are in `.gitignore`.
@@ -23,8 +28,10 @@
   the output, then run `validate_prepared.py` and `verify_result.py` as well as the unit tests.
 
 ## Data rules
-- Do not modify the original source workbooks (`USA PMix.xlsx`, `Quarterly PMIX Report.xlsx`).
+- Do not modify the original source workbooks (`USA PMix.xlsx`, `Quarterly PMIX Report.xlsx`,
+  `Menu Items List.xlsx`). The last is Cheena's cleaned menu list and the reference for item names.
 - Business decisions go in `business_rule` or `mapping_overrides.json`, so a rebuild keeps them.
+  Item-name decisions go in `menu_name_overrides.json`.
 - Never mark a mapping Approved without the user saying so.
 - Do not force unknown items into a category to reach zero unmapped.
 - Do not put category-level or store-level Qty in tracked files. The repo is public.
