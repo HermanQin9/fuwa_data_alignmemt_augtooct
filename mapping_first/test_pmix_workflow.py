@@ -96,7 +96,16 @@ class MappingWorkflowTests(unittest.TestCase):
             ("Sweets", "Tiramisu Cake", "", "Pastries"),
             ("None", "Chocolate Cake (Slice)", "Drinks", "Pastries"),
             ("Small Bites", "Spicy Yuzu Chicken Bites (8 pcs)", "Japanese Eats", "Add-Ons"),
-            ("Special Snacks", "Crispy Chicken Wings (6 pc)", "", "Add-Ons"),
+            ("Special Snacks", "Crispy Chicken Wings (6 pc)", "", "Appetizers"),
+            ("Sides", "Chicken Wings (10)", "Add-Ons", "Appetizers"),
+            ("Sides", "Deep Fried Chicken Gyoza", "Japanese Eats", "Appetizers"),
+            ("Sides", "Deep Fried Edamame Gyoza", "Japanese Eats", "Appetizers"),
+            ("Special Snacks", "Karaage Chicken", "Japanese Eats", "Appetizers"),
+            ("Top 10 Picks", "Karaage Chicken", "Japanese Eats", "Appetizers"),
+            ("", "Karrage Chicken", "Japanese Eats", "Appetizers"),
+            ("Sides", "Takoyaki", "Japanese Eats", "Appetizers"),
+            ("", "3 Chicken Strips", "Add-Ons", "Add-Ons"),
+            ("Extra Sweet", "Affogato", "", "Pastries"),
             ("", "Single Pancake", "Pancakes", "Add-Ons"),
             ("", "1 Plain Pancake", "Pancakes", "Add-Ons"),
             ("", "Gift Card", "", "Miscellaneous"),
@@ -112,14 +121,14 @@ class MappingWorkflowTests(unittest.TestCase):
         for group, item, draft in [
             ("Fluffy Chicken Bowl", "Teriyaki Chicken Bowl", "Japanese Eats"),
             ("Chicken Feast", "Shareable chicken 8 Pieces", "Japanese Eats"),
-            ("Special Snacks", "Karaage Chicken", "Japanese Eats"),
-            ("Sides", "Deep Fried Chicken Gyoza", "Japanese Eats"),
+            ("Chicken Feast", "8 Pieces Karaage", "Japanese Eats"),
+            ("Fluffy Chicken Bowl", "Teriyaki Karaage Don", "Japanese Eats"),
+            ("Drinks", "Affogato Float", "Drinks"),
             ("Basque Cheesecake", "Original Basque Cheesecake - Slice", "Cheesecakes"),
             ("Basque Cheesecake", "Warm Brownie with Ice Cream Scoop", "Pastries"),
             ("Fluffy Pancakes", "Signature Pancakes", "Pancakes"),
             ("Pancakes", "Special Pancake Combo (come with a free ice cream)", "Promotions"),
             ("Sweet Croffles", "Oreo Croffles", "Pastries"),
-            ("Extra Sweet", "Affogato", ""),
             ("Espresso Latte", "Fluffy Pumpkin Spice Tiramisu Latte", "Drinks"),
         ]:
             with self.subTest(item=item):
@@ -134,6 +143,15 @@ class MappingWorkflowTests(unittest.TestCase):
         self.assertEqual((row["Category"], row["Review Status"]), ("", "Excluded"))
         result = workflow.apply_mapping(source, pd.DataFrame([row]), draft=True)
         self.assertIn("intentionally", result.iloc[0]["Exception Reason"])
+
+    def test_cheena_answers_are_dated_in_the_evidence(self):
+        source = self.source.iloc[[0]].copy()
+        source["Source Item"], source["Source Group"] = "Affogato", "Extra Sweet"
+        source["POS Sheet"] = "TOAST"
+        source["Mapping ID"] = workflow.mapping_id("TOAST", "Extra Sweet", "Affogato")
+        row = workflow.propose_mapping(source, self.reference).iloc[0]
+        self.assertEqual((row["Category"], row["Review Status"]), ("Pastries", "Pending"))
+        self.assertEqual(row["Evidence"], "Business decision 2026-11-05")
 
     def test_changed_category_drops_the_old_reference_path(self):
         reference = pd.DataFrame([
@@ -303,6 +321,34 @@ class MappingWorkflowTests(unittest.TestCase):
                 workflow.write_table = real
             self.assertFalse(failing.exists())
             self.assertFalse(failing.with_name("failing.building.xlsx").exists())
+
+    def test_list_section_follows_the_list_and_the_entry_category(self):
+        menu = self.menu_list()
+        for item, category, expected in [
+            ("BLT Sandwich", "Sandwiches", "SANDWICHES"),
+            ("latte", "Drinks", "DRINKS"),                  # curated section beats UNCATEGORIZED
+            ("Tater Tots", "Appetizers", "APPETIZER"),      # listed twice: follow the category
+            ("Tater Tots", "Add-Ons", "ADD-ONS"),
+            ("Tater Tots", "Drinks", "APPETIZER"),          # no match: first section on the list
+            ("Cafe Mocha", "Drinks", workflow.UNSORTED_SECTION),
+            ("Bleh", "", workflow.NOT_LISTED),
+        ]:
+            with self.subTest(item=item, category=category):
+                self.assertEqual(workflow.list_section(menu, item, category), expected)
+
+    def test_menu_list_layout_adds_sections_and_keeps_totals(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            source = self.small_workbook(directory)
+            mapping = Path(directory) / "mapping.xlsx"
+            workflow.make_mapping(source, mapping, self.small_menu_list(directory))
+            output = Path(directory) / "list report.xlsx"
+            audit = workflow.make_report(source, mapping, output, None, None, draft=True,
+                                         all_dates=True, native=False, layout="menu-list")
+            data = pd.read_excel(output, sheet_name="PMIXData", dtype=object)
+        self.assertEqual(audit["Row layout"], "Menu List Section > Item")
+        self.assertEqual(dict(zip(data["Item"], data[workflow.LIST_SECTION])),
+                         {"BLT Sandwich": "SANDWICHES", "Latte": "DRINKS - COFFEE"})
+        self.assertEqual(audit["Selected net Qty"], audit["Pivot net Qty"] + audit["Exception net Qty"])
 
     def test_mapping_dropdown_covers_every_allowed_category(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
