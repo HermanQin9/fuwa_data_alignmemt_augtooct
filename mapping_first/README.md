@@ -14,7 +14,8 @@ files are kept in `../versions/`.
 
 - The report is a **draft**. Mapping entries stay `Pending` until the business marks them
   `Approved`, and a final build refuses Pending entries.
-- Categories and tests reflect the business decisions of 2026-10-31.
+- Categories and tests reflect the business decisions of 2026-10-31 and Cheena's answers of
+  2026-11-05.
 - Workbooks are not in Git, because this repository is public and they hold store sales data.
 
 ## Categories
@@ -40,13 +41,16 @@ category to reach zero unmapped: unknown items stay blank and appear in `Excepti
 | Promotions | Any product sold through a promotion source group |
 | Pastries | Cakes other than cheesecakes, and Mango Pudding |
 | Add-Ons | Ice cream, single pancakes, and chicken sides |
-| Appetizers | Everything in an Appetizer or Appetizers source group |
+| Appetizers | Everything in an Appetizer or Appetizers source group; wings, gyoza and Karaage Chicken (2026-11-05) |
+| Pastries | Affogato, which is a dessert; Affogato Float stays a drink (2026-11-05) |
 | Miscellaneous | Non-menu entries such as gift cards, utensil requests and tests |
 | Blank, `Excluded` | Custom Amount, on purpose, with the reason in Review Notes |
 
-Chicken sides are Spicy Yuzu Chicken Bites, wings, tenders, strips, and chicken in a side source
-group. Bowls, dons, plates, chicken feasts, shareable portions, gyoza and Karaage Chicken stay in
-Japanese Eats.
+Chicken sides are Spicy Yuzu Chicken Bites, tenders, strips, and chicken in a side source group.
+On 2026-11-05 Cheena confirmed that wings, gyoza and Karaage Chicken follow the APPETIZER section of
+her Menu Items List instead, so they go in Appetizers. Bowls, dons, plates, chicken feasts and
+shareable portions stay in Japanese Eats. These rows show `Business decision 2026-11-05` as
+Evidence.
 
 When a rule changes an entry's category, the entry takes the new category as its Menu, so it does
 not keep the path of the category it left. Sandwiches also keep their reference Menu group.
@@ -80,7 +84,9 @@ has since been removed from the list.
 
 The list's own spellings are copied as they are, including its typos (for example `Sapporro`,
 `Franch Sparkling Wine`, `Creme Burlee Sauce`). Fix the typo in `Menu Items List.xlsx` and
-rebuild if the report should show the corrected name.
+rebuild if the report should show the corrected name. Most misspellings in the POS data come from
+cashiers typing free-text item names at the register (Cheena, 2026-11-05), which is why so many
+entries are `Not in Menu Items List`.
 
 ## Inputs and outputs
 

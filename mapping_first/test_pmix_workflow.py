@@ -96,7 +96,14 @@ class MappingWorkflowTests(unittest.TestCase):
             ("Sweets", "Tiramisu Cake", "", "Pastries"),
             ("None", "Chocolate Cake (Slice)", "Drinks", "Pastries"),
             ("Small Bites", "Spicy Yuzu Chicken Bites (8 pcs)", "Japanese Eats", "Add-Ons"),
-            ("Special Snacks", "Crispy Chicken Wings (6 pc)", "", "Add-Ons"),
+            ("Special Snacks", "Crispy Chicken Wings (6 pc)", "", "Appetizers"),
+            ("Sides", "Chicken Wings (10)", "Add-Ons", "Appetizers"),
+            ("Sides", "Deep Fried Chicken Gyoza", "Japanese Eats", "Appetizers"),
+            ("Sides", "Deep Fried Edamame Gyoza", "Japanese Eats", "Appetizers"),
+            ("Special Snacks", "Karaage Chicken", "Japanese Eats", "Appetizers"),
+            ("Top 10 Picks", "Karaage Chicken", "Japanese Eats", "Appetizers"),
+            ("", "3 Chicken Strips", "Add-Ons", "Add-Ons"),
+            ("Extra Sweet", "Affogato", "", "Pastries"),
             ("", "Single Pancake", "Pancakes", "Add-Ons"),
             ("", "1 Plain Pancake", "Pancakes", "Add-Ons"),
             ("", "Gift Card", "", "Miscellaneous"),
@@ -112,14 +119,14 @@ class MappingWorkflowTests(unittest.TestCase):
         for group, item, draft in [
             ("Fluffy Chicken Bowl", "Teriyaki Chicken Bowl", "Japanese Eats"),
             ("Chicken Feast", "Shareable chicken 8 Pieces", "Japanese Eats"),
-            ("Special Snacks", "Karaage Chicken", "Japanese Eats"),
-            ("Sides", "Deep Fried Chicken Gyoza", "Japanese Eats"),
+            ("Chicken Feast", "8 Pieces Karaage", "Japanese Eats"),
+            ("Fluffy Chicken Bowl", "Teriyaki Karaage Don", "Japanese Eats"),
+            ("Drinks", "Affogato Float", "Drinks"),
             ("Basque Cheesecake", "Original Basque Cheesecake - Slice", "Cheesecakes"),
             ("Basque Cheesecake", "Warm Brownie with Ice Cream Scoop", "Pastries"),
             ("Fluffy Pancakes", "Signature Pancakes", "Pancakes"),
             ("Pancakes", "Special Pancake Combo (come with a free ice cream)", "Promotions"),
             ("Sweet Croffles", "Oreo Croffles", "Pastries"),
-            ("Extra Sweet", "Affogato", ""),
             ("Espresso Latte", "Fluffy Pumpkin Spice Tiramisu Latte", "Drinks"),
         ]:
             with self.subTest(item=item):
@@ -134,6 +141,15 @@ class MappingWorkflowTests(unittest.TestCase):
         self.assertEqual((row["Category"], row["Review Status"]), ("", "Excluded"))
         result = workflow.apply_mapping(source, pd.DataFrame([row]), draft=True)
         self.assertIn("intentionally", result.iloc[0]["Exception Reason"])
+
+    def test_cheena_answers_are_dated_in_the_evidence(self):
+        source = self.source.iloc[[0]].copy()
+        source["Source Item"], source["Source Group"] = "Affogato", "Extra Sweet"
+        source["POS Sheet"] = "TOAST"
+        source["Mapping ID"] = workflow.mapping_id("TOAST", "Extra Sweet", "Affogato")
+        row = workflow.propose_mapping(source, self.reference).iloc[0]
+        self.assertEqual((row["Category"], row["Review Status"]), ("Pastries", "Pending"))
+        self.assertEqual(row["Evidence"], "Business decision 2026-11-05")
 
     def test_changed_category_drops_the_old_reference_path(self):
         reference = pd.DataFrame([

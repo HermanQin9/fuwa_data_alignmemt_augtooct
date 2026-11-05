@@ -33,6 +33,9 @@ MENU_LIST_SHEET = "USA Menu List"
 # Cheena's own pile of names she has not placed or cleaned yet; never used as a clean spelling.
 UNSORTED_SECTION = "UNCATEGORIZED"
 DECISION_EVIDENCE = "Business decision 2026-10-31"
+# Cheena's answers of 2026-11-05; rules carrying this tag in their reason get this evidence.
+LATER_DECISION = "(Cheena, 2026-11-05)"
+LATER_DECISION_EVIDENCE = "Business decision 2026-11-05"
 AUDIT_EVIDENCE = "Audit proposal"
 SOURCE_COLUMNS = {
     "TOAST": ("Menu Group", "Menu Item", "Sent Date"),
@@ -352,6 +355,9 @@ SINGLE_PANCAKE = re.compile(r"\b(single|just one)\b.*\b(pancake|souffle|souflle)
 SIDE_GROUPS = {"small bites", "sides", "side order", "side orders", "a la cart", "add ons"}
 CHICKEN_SIDE = re.compile(r"\bwings?\b|\btenders?\b|\bchicken strips?\b|\bstrips chicken\b"
                           r"|\bchicken bites\b")
+# Listed under APPETIZER on the Menu Items List; Cheena confirmed Appetizers on 2026-11-05.
+# Karaage feasts, dons and bowls are not on that section and stay in Japanese Eats.
+APPETIZER_ITEM = re.compile(r"\bwings?\b|\bgyoza\b|^(chicken )?karaage( fried)? chicken$")
 CAKE = re.compile(r"\bcakes?\b|\bcake ?pops?\b|\bcakepops?\b|\brollcakes?\b")
 NOT_CAKE = re.compile(r"cheese ?cake|basque|pancake|latte|frappe|\btea\b|shake|coffee")
 SANDWICH_GROUPS = {"savory croffle", "savory croffles", "crunchy croissant"}
@@ -359,7 +365,10 @@ CUSTOM_AMOUNT_NOTE = "Custom Amount intentionally left blank by business decisio
 
 
 def business_rule(group: object, item: object, category: str) -> tuple[str, str]:
-    """Apply decisions confirmed on 2026-10-31. Returns (category, reason); no match has no reason."""
+    """Apply decisions confirmed on 2026-10-31 and 2026-11-05.
+
+    Returns (category, reason); no match has no reason.
+    """
     i, g = normalized(item), normalized(group)
     if i == "custom amount":
         return "", CUSTOM_AMOUNT_NOTE
@@ -373,6 +382,10 @@ def business_rule(group: object, item: object, category: str) -> tuple[str, str]
         return category, ""
     if g in ("appetizer", "appetizers"):
         return "Appetizers", "Items in an appetizer source group go in Appetizers."
+    if APPETIZER_ITEM.search(i):
+        return "Appetizers", f"Wings, gyoza and Karaage Chicken go in Appetizers {LATER_DECISION}."
+    if i == "affogato":
+        return "Pastries", f"Affogato goes in Pastries; Affogato Float is a drink {LATER_DECISION}."
     if g in ICE_CREAM_GROUPS or (ICE_CREAM_ITEM.search(i) and not NOT_ICE_CREAM.search(i)):
         return "Add-Ons", "Ice cream goes in Add-Ons."
     if SINGLE_PANCAKE.search(i):
@@ -443,7 +456,7 @@ def propose_mapping(source: pd.DataFrame, reference: pd.DataFrame,
         if reason == CUSTOM_AMOUNT_NOTE:
             status, evidence, notes = "Excluded", DECISION_EVIDENCE, reason
         elif reason and ruled != draft_category:
-            evidence = DECISION_EVIDENCE
+            evidence = LATER_DECISION_EVIDENCE if LATER_DECISION in reason else DECISION_EVIDENCE
             notes = f"{reason} Draft was {draft_category or 'blank'}. Not approved."
         final = ruled
         if final == draft_category or not final:
