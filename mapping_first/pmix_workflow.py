@@ -357,7 +357,8 @@ CHICKEN_SIDE = re.compile(r"\bwings?\b|\btenders?\b|\bchicken strips?\b|\bstrips
                           r"|\bchicken bites\b")
 # Listed under APPETIZER on the Menu Items List; Cheena confirmed Appetizers on 2026-11-05.
 # Karaage feasts, dons and bowls are not on that section and stay in Japanese Eats.
-APPETIZER_ITEM = re.compile(r"\bwings?\b|\bgyoza\b|^(chicken )?karaage( fried)? chicken$")
+# kar+a+ge also catches the POS free-text typo "Karrage Chicken".
+APPETIZER_ITEM = re.compile(r"\bwings?\b|\bgyoza\b|^(chicken )?kar+a+ge( fried)? chicken$")
 CAKE = re.compile(r"\bcakes?\b|\bcake ?pops?\b|\bcakepops?\b|\brollcakes?\b")
 NOT_CAKE = re.compile(r"cheese ?cake|basque|pancake|latte|frappe|\btea\b|shake|coffee")
 SANDWICH_GROUPS = {"savory croffle", "savory croffles", "crunchy croissant"}

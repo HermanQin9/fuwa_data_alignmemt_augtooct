@@ -48,7 +48,8 @@ category to reach zero unmapped: unknown items stay blank and appear in `Excepti
 
 Chicken sides are Spicy Yuzu Chicken Bites, tenders, strips, and chicken in a side source group.
 On 2026-11-05 Cheena confirmed that wings, gyoza and Karaage Chicken follow the APPETIZER section of
-her Menu Items List instead, so they go in Appetizers. Bowls, dons, plates, chicken feasts and
+her Menu Items List instead, so they go in Appetizers, as does the free-text typo `Karrage
+Chicken`. Bowls, dons, plates, chicken feasts and
 shareable portions stay in Japanese Eats. These rows show `Business decision 2026-11-05` as
 Evidence.
 
