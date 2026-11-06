@@ -76,9 +76,11 @@ def preflight(args) -> None:
         raise SystemExit("--final needs --start and --end")
     if bool(args.start) != bool(args.end):
         raise SystemExit("Give both --start and --end, or neither")
-    locks = sorted(p.name for p in RESULT.glob("~$*"))
-    if locks and not args.dry_run:
-        raise SystemExit(f"Close these workbooks in Excel first: {locks}")
+
+
+def open_workbooks() -> list[str]:
+    """Result workbooks open in Excel; they cannot be moved until closed."""
+    return sorted(p.name[2:] for p in RESULT.glob("~$*"))
 
 
 def archive_folder(label: str) -> Path:
@@ -91,6 +93,8 @@ def archive_folder(label: str) -> Path:
 
 def publish(staged: list[Path], label: str) -> Path | None:
     """Move the current Result files to versions/, then the new ones into Result/."""
+    if open_workbooks():
+        raise RuntimeError(f"Close these workbooks in Excel first: {open_workbooks()}")
     current = [p for p in RESULT.iterdir() if p.is_file() and p.name not in KEEP_IN_RESULT]
     folder = None
     if current:
@@ -123,7 +127,12 @@ def main() -> int:
                         help="Approved report: refuses Pending entries in the window")
     parser.add_argument("--dry-run", action="store_true",
                         help="Build and check in Result/_building only; leave Result/ unchanged")
+    parser.add_argument("--publish-staged", type=Path, metavar="FOLDER",
+                        help="Publish a checked run left in Result/_building (for example while a "
+                             "Result workbook was open in Excel), without rebuilding")
     args = parser.parse_args()
+    if args.publish_staged:
+        return publish_staged(args.publish_staged, args.label)
     if args.no_previous:
         args.previous = None
     preflight(args)
@@ -180,14 +189,32 @@ def main() -> int:
     if args.dry_run:
         print(f"Dry run: output left in {stage}; Result/ unchanged.")
         return 0
-    folder = publish(staged, args.label)
+    if open_workbooks():
+        print(f"Checked output is staged, but these are open in Excel: {open_workbooks()}.\n"
+              f"Close them, then run: run_pipeline.py --publish-staged \"{stage}\" --label {args.label}")
+        return 0
+    return finish(stage, staged, args.label)
+
+
+def finish(stage: Path, staged: list[Path], label: str) -> int:
+    folder = publish(staged, label)
     stage.rmdir()
-    if not any(STAGING.iterdir()):
+    if STAGING.exists() and not any(STAGING.iterdir()):
         STAGING.rmdir()
     if folder:
         print(f"Previous Result files moved to {folder.relative_to(ROOT)}")
     print("New output is in Result/.")
     return 0
+
+
+def publish_staged(stage: Path, label: str) -> int:
+    """Publish a run that passed every check but was left staged."""
+    summary_path = stage / RUN_SUMMARY
+    if not summary_path.exists() or json.loads(summary_path.read_text(encoding="utf-8")).get("overall") != "PASS":
+        raise SystemExit(f"{stage} is not a run that passed every check")
+    if open_workbooks():
+        raise SystemExit(f"Close these workbooks in Excel first: {open_workbooks()}")
+    return finish(stage, sorted(p for p in stage.iterdir() if p.is_file()), label)
 
 
 if __name__ == "__main__":

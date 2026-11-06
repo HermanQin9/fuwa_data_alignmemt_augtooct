@@ -11,6 +11,9 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pmix_workflow as workflow
 
+# Tests build small workbooks from real item names; the live reviewer decisions must not apply.
+workflow.REVIEW_FILE = Path(__file__).resolve().parent / "no-review-decisions-in-tests.json"
+
 
 class MappingWorkflowTests(unittest.TestCase):
     def setUp(self):
@@ -522,6 +525,90 @@ class CarryOverTests(unittest.TestCase):
             previous = workflow.read_previous(path)
         self.assertEqual(len(previous), 2)
         self.assertEqual(previous.set_index("Mapping ID").loc[self.pancake, "Category"], "Pancakes")
+
+
+class ReviewDecisionTests(unittest.TestCase):
+    """Reviewer decisions (review_decisions.json) and the recategorize.py helpers."""
+
+    def setUp(self):
+        tests = MappingWorkflowTests("test_map_covers_all_rows_and_blank_groups")
+        tests.setUp()
+        self.source, self.reference = tests.source, tests.reference
+        self.menu = workflow.MenuList([("PANCAKES", "Signature Pancakes"), ("ADD-ONS", "Avocado"),
+                                       ("DRINKS - JUICE", "Apple Juice")])
+        self.pancake = workflow.mapping_id("TOAST", "Pancakes", "Signature Pancakes")
+        self.blank = workflow.mapping_id("SQUARE", "", "D")
+
+    def propose(self, decisions):
+        return workflow.propose_mapping(self.source, self.reference, self.menu, {},
+                                        decisions).set_index("Mapping ID")
+
+    def test_sections_are_stored_in_the_mapping(self):
+        mapping = self.propose({})
+        self.assertEqual(mapping.loc[self.pancake, workflow.LIST_SECTION], "PANCAKES")
+        self.assertEqual(mapping.loc[self.blank, workflow.LIST_SECTION], workflow.NOT_LISTED)
+
+    def test_decision_moves_renames_and_approves_last(self):
+        mapping = self.propose({self.blank: {"status": "Approved", "section": "DRINKS - JUICE",
+                                             "item": "Apple Juice", "by": "Cheena 2026-11-06"}})
+        row = mapping.loc[self.blank]
+        self.assertEqual((row["Category"], row[workflow.LIST_SECTION], row["Item"], row["Review Status"]),
+                         ("Drinks", "DRINKS - JUICE", "Apple Juice", "Approved"))
+        self.assertEqual(row["Evidence"], "Reviewed by Cheena 2026-11-06")
+        self.assertEqual(row["Menu List Status"], workflow.RENAMED)
+        self.assertEqual((row["Menu"], row["Menu group"]), ("Drinks", "Drinks"))
+
+    def test_extra_section_and_its_category(self):
+        mapping = self.propose({self.pancake: {"status": "Approved", "section": "PROMOTIONS", "by": "x"}})
+        self.assertEqual(mapping.loc[self.pancake, "Category"], "Promotions")
+        self.assertEqual(mapping.loc[self.pancake, workflow.LIST_SECTION], "PROMOTIONS")
+
+    def test_section_category_keeps_a_fitting_category(self):
+        self.assertEqual(workflow.section_category("FLUFFY ALL DAY - SANDWICHES", "Fluffy All Day"),
+                         "Fluffy All Day")
+        self.assertEqual(workflow.section_category("COMBOS", "Pancakes"), "Promotions")
+        self.assertEqual(workflow.section_category("DRINKS - TEA", "Pancakes"), "Drinks")
+        self.assertEqual(workflow.section_category("UNCATEGORIZED", "Pancakes"), "Pancakes")
+
+    def test_canonical_section_reads_reviewer_spellings(self):
+        sections = ["FLUFFY ALL DAY - ENTREES", "FLUFFY ALL DAY - SANDWICHES", "SWEET CROFFLES",
+                    "APPETIZER", "ADD-ONS", *workflow.EXTRA_SECTIONS]
+        for typed, expected in (("Fluffy All Day - Entrée", "FLUFFY ALL DAY - ENTREES"),
+                                ("Fluffy All Day -Sandwiches", "FLUFFY ALL DAY - SANDWICHES"),
+                                ("Croffles", "SWEET CROFFLES"), ("Appetizer", "APPETIZER"),
+                                ("Add-Ons", "ADD-ONS"), ("Promotions", "PROMOTIONS"),
+                                ("Desserts", None)):
+            with self.subTest(typed=typed):
+                self.assertEqual(workflow.canonical_section(typed, sections), expected)
+
+    def test_carry_over_does_not_undo_a_newer_decision(self):
+        decisions = {self.pancake: {"status": "Approved", "section": "PROMOTIONS", "by": "x"}}
+        mapping = workflow.propose_mapping(self.source, self.reference, self.menu, {}, decisions)
+        previous = mapping.copy()
+        previous.loc[0, ["Category", "Review Status"]] = ["Pancakes", "Approved"]
+        carried, _, changes = workflow.carry_over(mapping, previous, set(decisions))
+        self.assertEqual(carried.iloc[0]["Category"], "Promotions")
+        self.assertEqual(changes["Change"].tolist(), [workflow.REVIEW_APPLIED])
+
+    def test_recategorize_reads_remarks(self):
+        import recategorize as rc
+        self.assertEqual(rc.instruction("Rename to Apple Juice"), ("rename", "Apple Juice", ""))
+        self.assertEqual(rc.instruction("Raname to Roll Cake"), ("rename", "Roll Cake", ""))
+        self.assertEqual(rc.instruction("Rename to Mango Pancakes, if item is under Pancakes Category"),
+                         ("rename", "Mango Pancakes", "Pancakes"))
+        self.assertEqual(rc.instruction('Remove " (Cold or Hot)" in item name'),
+                         ("remove", " (Cold or Hot)", ""))
+        self.assertEqual(rc.instruction("Remove # character in the item name"), ("remove", "#", ""))
+        self.assertEqual(rc.instruction("Ube Pancakes"), ("rename", "Ube Pancakes", ""))
+        self.assertEqual(rc.apply_instruction("Matcha Latte - Cold", "remove", " -Cold"), "Matcha Latte")
+        self.assertEqual(rc.apply_instruction("#Add On Ice Cream", "remove", "#"), "Add On Ice Cream")
+        self.assertIsNone(rc.apply_instruction("Latte", "remove", " (Hot)"))
+
+    def test_recategorize_snaps_typos_but_never_drops_words(self):
+        import recategorize as rc
+        menu = workflow.MenuList([("X", "Mocha Espresso"), ("X", "Basque Cheesecake - Slice")])
+        self.assertEqual(rc.snap("Mocha Expresso", menu), "Mocha Espresso")
+        self.assertEqual(rc.snap("Oreo Basque Cheesecake - Slice", menu), "Oreo Basque Cheesecake - Slice")
 
 
 if __name__ == "__main__":

@@ -28,6 +28,9 @@ CATEGORIES = [
 LOCATION_ALIASES = {"Fluffy Fluffy Tucker GA": "Fluffy Fluffy - Tucker"}
 OVERRIDES_FILE = Path(__file__).resolve().parent / "mapping_overrides.json"
 NAME_OVERRIDES_FILE = Path(__file__).resolve().parent / "menu_name_overrides.json"
+# Reviewer decisions per entry (status, section, category, name); written by recategorize.py.
+REVIEW_FILE = Path(__file__).resolve().parent / "review_decisions.json"
+REVIEW_EVIDENCE = "Reviewed by"
 MENU_LIST_FILE = ROOT / "Menu Items List.xlsx"
 MENU_LIST_SHEET = "USA Menu List"
 # Cheena's own pile of names she has not placed or cleaned yet; never used as a clean spelling.
@@ -45,7 +48,7 @@ KEY_COLUMNS = ["POS Sheet", "Source Group", "Source Item"]
 MAPPING_COLUMNS = [
     "Mapping ID", *KEY_COLUMNS, "Category", "Menu", "Menu group", "Item",
     "Review Status", "Evidence", "Candidate Paths", "Rows", "Net Qty",
-    "Locations", "Review Notes", "Menu List Status", "Menu List Match",
+    "Locations", "Review Notes", "Menu List Status", "Menu List Match", "Menu List Section",
 ]
 # Menu List Status values; Cheena filters on these.
 LISTED = "Listed"
@@ -53,6 +56,21 @@ LISTED_CLEANED = "Listed - name cleaned"
 CLOSE_MATCH = "Close match - review"
 UNSORTED_ONLY = "Listed in UNCATEGORIZED only"
 NOT_LISTED = "Not in Menu Items List"
+RENAMED = "Renamed by review"
+# Report sections that are not headings on the Menu Items List; reviewers may still pick them.
+EXTRA_SECTIONS = ["PROMOTIONS", "MISCELLANEOUS"]
+# Category for an entry a reviewer moves to a section: the first is the default, and an entry
+# whose category is already in the set keeps it. Taken from Cheena's approvals of 2026-11-06.
+SECTION_CATEGORIES = {
+    "ADD-ONS": ["Add-Ons", "Pastries"], "APPETIZER": ["Appetizers"], "BAR DRINKS": ["Drinks"],
+    "BASQUE CHEESECAKES": ["Cheesecakes"], "COMBOS": ["Promotions"],
+    "FLUFFY ALL DAY - ENTREES": ["Fluffy All Day", "Sandwiches"],
+    "FLUFFY ALL DAY - SANDWICHES": ["Sandwiches", "Fluffy All Day", "Add-Ons", "Pastries"],
+    "ICE CREAM": ["Add-Ons"], "MERCHANDISE": ["Miscellaneous"], "OMELLETES": ["Fluffy All Day"],
+    "PANCAKES": ["Pancakes"], "PASTRIES": ["Pastries"], "SALADS": ["Fluffy All Day"],
+    "SMALL BITES": ["Add-Ons"], "SWEET CROFFLES": ["Pastries"], "WAFFLES": ["Pastries", "Fluffy All Day"],
+    "WRAPS": ["Fluffy All Day"], "PROMOTIONS": ["Promotions"], "MISCELLANEOUS": ["Miscellaneous"],
+}
 # Report layouts. "category" is the PMIX report; "menu-list" groups rows by the Menu Items List.
 LIST_SECTION = "Menu List Section"
 LAYOUTS = {
@@ -217,6 +235,63 @@ def list_section(menu_list: MenuList, item: object, category: object) -> str:
     return NOT_LISTED
 
 
+def section_category(section: str, current: str) -> str:
+    """The Category for an entry placed in a section: its own if that fits, else the default."""
+    if section.startswith("DRINKS"):
+        allowed = ["Drinks"]
+    elif section.startswith("JAPANESE EATS"):
+        allowed = ["Japanese Eats"]
+    else:
+        allowed = SECTION_CATEGORIES.get(section, [])
+    if not allowed or current in allowed:
+        return current  # UNCATEGORIZED and 'Not in Menu Items List' say nothing about category
+    return allowed[0]
+
+
+def report_sections(menu_list: MenuList) -> list[str]:
+    """Every section a reviewer may choose: the list's headings plus the extra report sections."""
+    headings = list(dict.fromkeys(s for s, _ in menu_list.entries if s))
+    return headings + [s for s in EXTRA_SECTIONS if s not in headings]
+
+
+# Reviewer spellings that do not match a heading by spelling alone.
+SECTION_ALIASES = {"croffle": "SWEET CROFFLES", "sandwich": "FLUFFY ALL DAY - SANDWICHES",
+                   "fluffy all day sandwich": "FLUFFY ALL DAY - SANDWICHES",
+                   "fluffy all day entree": "FLUFFY ALL DAY - ENTREES",
+                   "promotion": "PROMOTIONS", "miscellaneou": "MISCELLANEOUS"}
+
+
+def canonical_section(value: object, sections: list[str]) -> str | None:
+    """'Fluffy All Day - Entrée' -> 'FLUFFY ALL DAY - ENTREES'. None when it names no section."""
+    key = singular(value)
+    if not key:
+        return None
+    for section in sections:
+        if singular(section) == key:
+            return section
+    alias = SECTION_ALIASES.get(key)
+    return alias if alias in sections else None
+
+
+def load_review_decisions() -> dict:
+    """Reviewer decisions keyed by Mapping ID; names and categories only, no sales quantities."""
+    if not REVIEW_FILE.exists():
+        return {}
+    with REVIEW_FILE.open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+# Where each POS export keeps the time of sale; without it the time part of the date is used.
+TIME_COLUMNS = {"TOAST": "Sent Date - Copy", "SQUARE": "Time"}
+
+
+def sale_times(df: pd.DataFrame, name: str, dates: pd.Series) -> list:
+    column = TIME_COLUMNS[name]
+    values = df[column] if column in df else dates
+    return [v.time() if isinstance(v, (dt.datetime, pd.Timestamp))
+            else v if isinstance(v, dt.time) else None for v in values]
+
+
 def load_sources(source: Path) -> tuple[dict[str, pd.DataFrame], pd.DataFrame]:
     book = openpyxl.load_workbook(source, read_only=True, data_only=True)
     sheets = {}
@@ -244,6 +319,7 @@ def load_sources(source: Path) -> tuple[dict[str, pd.DataFrame], pd.DataFrame]:
             raise ValueError(f"{name}: missing sale dates")
         part = pd.DataFrame({
             "POS Sheet": name, "Source Row": df.index + 2,
+            "Time": sale_times(df, name, dates),
             "Source Group": df[group].map(text), "Source Item": df[item],
             "Location": df["Location"].map(
                 lambda v: LOCATION_ALIASES.get(text(v).strip(), text(v).strip())),
@@ -418,9 +494,11 @@ def load_overrides() -> dict:
 
 def propose_mapping(source: pd.DataFrame, reference: pd.DataFrame,
                     menu_list: MenuList | None = None,
-                    name_overrides: dict | None = None) -> pd.DataFrame:
+                    name_overrides: dict | None = None,
+                    decisions: dict | None = None) -> pd.DataFrame:
     overrides = load_overrides()
     name_overrides = name_overrides or {}
+    decisions = decisions or {}
     lookup = {}
     for record in reference.to_dict("records"):
         lookup.setdefault(normalized(record["Item"]), []).append(record)
@@ -476,10 +554,32 @@ def propose_mapping(source: pd.DataFrame, reference: pd.DataFrame,
             menu = final
             menu_group = selected["Menu group"] if selected and final == "Sandwiches" else own_group
             name = selected["Item"] if selected else item
-        list_status = list_match = ""
+        list_status = list_match = section = ""
         if menu_list is not None:
             name, list_status, list_match = check_menu_name(
                 menu_list, name_overrides, ident, item, name)
+            section = list_section(menu_list, name, final)
+        decision = decisions.get(ident)
+        if decision:
+            # A reviewer's decision is applied last and wins over every rule.
+            if decision.get("item") and tidy(decision["item"]) != name:
+                name = tidy(decision["item"])
+                hit = menu_list.find(name) if menu_list is not None else None
+                list_status = RENAMED
+                list_match = menu_list.label(hit[0]) if hit else "Not on the list under this name"
+            if decision.get("section"):
+                section = decision["section"]
+            elif menu_list is not None:
+                section = list_section(menu_list, name, final)
+            category = decision.get("category") or section_category(section, final)
+            if category != final:
+                own_group = text(group).strip()
+                menu = category
+                menu_group = category if own_group in ("", "None") else own_group
+            final = category
+            status = decision.get("status") or status
+            evidence = f"{REVIEW_EVIDENCE} {decision['by']}"
+            notes = decision.get("note") or f"Reviewed by {decision['by']}."
         rows.append({
             "Mapping ID": ident, "POS Sheet": sheet, "Source Group": group,
             "Source Item": item, "Category": final, "Menu": menu,
@@ -490,6 +590,7 @@ def propose_mapping(source: pd.DataFrame, reference: pd.DataFrame,
             "Locations": "; ".join(sorted(frame["Location"].unique())),
             "Review Notes": notes,
             "Menu List Status": list_status, "Menu List Match": list_match,
+            "Menu List Section": section,
         })
     return pd.DataFrame(rows, columns=MAPPING_COLUMNS)
 
@@ -504,6 +605,7 @@ CHANGE_COLUMNS = ["Mapping ID", *KEY_COLUMNS, "Change", "Details"]
 NEW_ITEM = "New item"
 KEPT = "Reviewed decision kept"
 REBUILT = "Pending entry changed"
+REVIEW_APPLIED = "Review decision applied"
 
 
 def read_previous(path: Path) -> pd.DataFrame:
@@ -514,18 +616,21 @@ def read_previous(path: Path) -> pd.DataFrame:
     except ValueError:
         pass  # masters built before carry-over have no such sheet
     previous = pd.concat(frames, ignore_index=True)
+    if LIST_SECTION not in previous:
+        previous[LIST_SECTION] = ""  # masters built before sections were stored
     missing = set(MAPPING_COLUMNS) - set(previous)
     if missing:
         raise ValueError(f"Previous mapping {path} is missing columns {sorted(missing)}")
     return previous.drop_duplicates("Mapping ID", keep="first")
 
 
-def carry_over(mapping: pd.DataFrame, previous: pd.DataFrame
+def carry_over(mapping: pd.DataFrame, previous: pd.DataFrame, decided: set | frozenset = frozenset()
                ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Keep the reviewed decisions of a previous master in a freshly proposed one.
 
     Approved and Excluded entries keep their reviewed fields. Pending entries are rebuilt by
     the rules; any difference from before is listed so a hand edit is never lost silently.
+    Entries in `decided` follow review_decisions.json, which is newer than any saved master.
     Returns (mapping, earlier decisions not in this data, changes).
     """
     old = {row["Mapping ID"]: row for row in previous.to_dict("records")}
@@ -543,12 +648,21 @@ def carry_over(mapping: pd.DataFrame, previous: pd.DataFrame
                  + (f" Suggested category: {row['Category']}." if row["Category"] else " No category suggested."))
             continue
         differs = [f for f in REVIEW_FIELDS if text(before[f]) != text(row[f])]
+        if row["Mapping ID"] in decided:
+            shown = [f for f in ("Category", "Item", LIST_SECTION, "Review Status")
+                     if text(before[f]) and text(before[f]) != text(row[f])]
+            if shown:
+                note(row, REVIEW_APPLIED, "; ".join(f"{f}: was {text(before[f])!r}, now {text(row[f])!r}"
+                                                    for f in shown))
+            continue
         if text(before["Review Status"]) in REVIEWED:
             if before["Review Status"] == "Approved" and before["Category"] not in CATEGORIES:
                 raise ValueError(f"Previous mapping: Approved entry {row['Source Item']!r} "
                                  f"has invalid Category {before['Category']!r}")
             for field in REVIEW_FIELDS:
                 mapping.at[index, field] = before[field]
+            if text(before[LIST_SECTION]):
+                mapping.at[index, LIST_SECTION] = before[LIST_SECTION]
             if text(before["Item"]) != text(row["Item"]):
                 # The reviewed name stands, so its list status comes with it.
                 mapping.at[index, "Menu List Status"] = before["Menu List Status"]
@@ -602,10 +716,12 @@ def make_mapping(source_path: Path, output: Path, menu_list_path: Path = MENU_LI
     # A new POS export may have no Menu Category outline, so the reference can be another file.
     reference = read_reference(reference_path or source_path)
     menu_entries = read_menu_list(menu_list_path)
-    mapping = propose_mapping(source, reference, MenuList(menu_entries), load_name_overrides())
+    decisions = load_review_decisions()
+    mapping = propose_mapping(source, reference, MenuList(menu_entries), load_name_overrides(),
+                              decisions)
     earlier = changes = None
     if previous_path is not None:
-        mapping, earlier, changes = carry_over(mapping, read_previous(previous_path))
+        mapping, earlier, changes = carry_over(mapping, read_previous(previous_path), set(decisions))
     coverage = source.groupby(["POS Sheet", "Location"], dropna=False).agg(
         Rows=("Qty", "size"), Net_Qty=("Qty", "sum"),
         First_Date=("Date", "min"), Last_Date=("Date", "max"),
@@ -648,7 +764,7 @@ def make_mapping(source_path: Path, output: Path, menu_list_path: Path = MENU_LI
 
 
 def apply_mapping(source: pd.DataFrame, mapping: pd.DataFrame, draft: bool) -> pd.DataFrame:
-    required = set(MAPPING_COLUMNS)
+    required = set(MAPPING_COLUMNS) - {LIST_SECTION}  # older masters have no section column
     if required - set(mapping):
         raise ValueError(f"Mapping missing columns: {sorted(required - set(mapping))}")
     if mapping["Mapping ID"].duplicated().any():
@@ -671,6 +787,8 @@ def apply_mapping(source: pd.DataFrame, mapping: pd.DataFrame, draft: bool) -> p
             raise ValueError("Categorized mappings require Menu, Menu group and Item")
     fields = ["Mapping ID", "Category", "Menu", "Menu group", "Item",
               "Review Status", "Evidence", "Review Notes"]
+    if LIST_SECTION in mapping:
+        fields.append(LIST_SECTION)
     merged = source.merge(mapping[fields], on="Mapping ID", how="left", validate="many_to_one",
                           indicator=True, sort=False)
     if merged["_merge"].ne("both").any():
@@ -860,7 +978,10 @@ def make_report(source_path: Path, mapping_path: Path, output: Path,
         menu_list = MenuList(list(zip(listed["Section"], listed["Menu Item"])))
         pairs = data[["Item", "Category"]].drop_duplicates()
         sections = {(i, c): list_section(menu_list, i, c) for i, c in zip(pairs["Item"], pairs["Category"])}
-        data[LIST_SECTION] = [sections[(i, c)] for i, c in zip(data["Item"], data["Category"])]
+        computed = [sections[(i, c)] for i, c in zip(data["Item"], data["Category"])]
+        # The master's own section wins: it holds sections reviewers chose for unlisted items.
+        saved = data[LIST_SECTION] if LIST_SECTION in data else pd.Series("", index=data.index)
+        data[LIST_SECTION] = [s if text(s) else c for s, c in zip(saved, computed)]
     coverage = mapped.groupby(["POS Sheet", "Location"], dropna=False).agg(
         Rows=("Qty", "size"), Net_Qty=("Qty", "sum"),
         First_Date=("Date", "min"), Last_Date=("Date", "max"),
@@ -924,7 +1045,7 @@ def make_report(source_path: Path, mapping_path: Path, output: Path,
                                  "or the Location slicer on PMIX.")
                 grid.freeze_panes(0, 1)
                 grid.write(4, 0, "Qty (#) = net item quantity. Rows listed in Exceptions are not included.")
-            fields = ["Location", "Date", "Year", "Period", "Month", "Week starting", "Category", "Menu",
+            fields = ["Location", "Date", "Time", "Year", "Period", "Month", "Week starting", "Category", "Menu",
                       "Menu group", *([LIST_SECTION] if layout == "menu-list" else []), "Item", "Qty",
                       "POS Sheet", "Source Row", "Mapping ID", "Review Status"]
             write_table(writer, "PMIXData", data[fields], autofilter=False)

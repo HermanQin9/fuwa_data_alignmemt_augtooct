@@ -101,8 +101,16 @@ def expected_rows(source, mapping_path, first, last, layout="category"):
     assert rows["Category"].notna().all(), "A source row has no mapping"
     if layout == "menu-list":
         find = section_finder(mapping_path)
-        pairs = {(i, c): find(i, c) for i, c in set(zip(rows["Item"], rows["Category"]))}
-        rows["group"] = [pairs[(i, c)] for i, c in zip(rows["Item"], rows["Category"])]
+        looked_up = {r["Mapping ID"]: find(r["Item"], r["Category"]) for r in mapping.to_dict("records")}
+        saved = dict(zip(mapping["Mapping ID"], mapping.get("Menu List Section", "")))
+        evidence = dict(zip(mapping["Mapping ID"], mapping["Evidence"]))
+        # A saved section that differs from the list lookup must be a recorded reviewer decision.
+        for ident, section in saved.items():
+            if section and section != looked_up[ident]:
+                assert str(evidence[ident]).startswith("Reviewed by"), (
+                    f"Section {section!r} differs from the list ({looked_up[ident]!r}) without a review")
+        group = {i: saved.get(i) or looked_up[i] for i in looked_up}
+        rows["group"] = rows["id"].map(group)
     else:
         rows["group"] = rows["Category"]
     return rows, mapping

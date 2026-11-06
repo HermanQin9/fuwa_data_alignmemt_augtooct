@@ -21,10 +21,19 @@ same totals; only the row grouping differs.
 
 In the mapping workbook, `Menu List Status` and `Menu List Match` show which items are on Cheena's
 `Menu Items List.xlsx`. Filter `Menu List Status` for `Not in Menu Items List` to see the items
-that still need a clean name. Item names were cleaned against that list; categories were not changed.
+that still need a clean name. Item names were cleaned against that list. Cheena's review of
+2026-11-06 then set sections, names and approvals; `Menu List Section` shows where each item is
+reported, and Evidence `Reviewed by Cheena 2026-11-06` marks her decisions.
 
 The repository is public, so the workbooks stay on the local machine. They hold store sales data
 and are ignored by Git.
+
+`Recategorize Check - ... .xlsx` lists what `recategorize.py` recorded from a review: every
+decision, anything it could not apply, and what is still Pending.
+
+PMIXData has a `Time` column with each sale's time. Names in the report are trimmed; the
+`Source Item` and `Source Group` columns keep the POS spelling, spaces included, because they
+identify each entry.
 
 A mapping built by the pipeline also has a `Changes` sheet (new items, and rows whose rules
 changed) and an `Earlier Decisions` sheet (approved items not in the current data).
