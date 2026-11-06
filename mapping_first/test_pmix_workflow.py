@@ -11,6 +11,9 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pmix_workflow as workflow
 
+# Tests build small workbooks from real item names; the live reviewer decisions must not apply.
+workflow.REVIEW_FILE = Path(__file__).resolve().parent / "no-review-decisions-in-tests.json"
+
 
 class MappingWorkflowTests(unittest.TestCase):
     def setUp(self):
@@ -76,8 +79,8 @@ class MappingWorkflowTests(unittest.TestCase):
                     workflow.apply_mapping(self.source, bad, draft=True)
 
     def test_allowed_categories_include_the_business_additions(self):
-        self.assertEqual(len(workflow.CATEGORIES), 11)
-        for category in ("Sandwiches", "Appetizers", "Miscellaneous"):
+        self.assertEqual(len(workflow.CATEGORIES), 12)
+        for category in ("Sandwiches", "Appetizers", "Miscellaneous", "Combos"):
             self.assertIn(category, workflow.CATEGORIES)
 
     def test_business_rules(self):
@@ -96,7 +99,16 @@ class MappingWorkflowTests(unittest.TestCase):
             ("Sweets", "Tiramisu Cake", "", "Pastries"),
             ("None", "Chocolate Cake (Slice)", "Drinks", "Pastries"),
             ("Small Bites", "Spicy Yuzu Chicken Bites (8 pcs)", "Japanese Eats", "Add-Ons"),
-            ("Special Snacks", "Crispy Chicken Wings (6 pc)", "", "Add-Ons"),
+            ("Special Snacks", "Crispy Chicken Wings (6 pc)", "", "Appetizers"),
+            ("Sides", "Chicken Wings (10)", "Add-Ons", "Appetizers"),
+            ("Sides", "Deep Fried Chicken Gyoza", "Japanese Eats", "Appetizers"),
+            ("Sides", "Deep Fried Edamame Gyoza", "Japanese Eats", "Appetizers"),
+            ("Special Snacks", "Karaage Chicken", "Japanese Eats", "Appetizers"),
+            ("Top 10 Picks", "Karaage Chicken", "Japanese Eats", "Appetizers"),
+            ("", "Karrage Chicken", "Japanese Eats", "Appetizers"),
+            ("Sides", "Takoyaki", "Japanese Eats", "Appetizers"),
+            ("", "3 Chicken Strips", "Add-Ons", "Add-Ons"),
+            ("Extra Sweet", "Affogato", "", "Pastries"),
             ("", "Single Pancake", "Pancakes", "Add-Ons"),
             ("", "1 Plain Pancake", "Pancakes", "Add-Ons"),
             ("", "Gift Card", "", "Miscellaneous"),
@@ -112,14 +124,14 @@ class MappingWorkflowTests(unittest.TestCase):
         for group, item, draft in [
             ("Fluffy Chicken Bowl", "Teriyaki Chicken Bowl", "Japanese Eats"),
             ("Chicken Feast", "Shareable chicken 8 Pieces", "Japanese Eats"),
-            ("Special Snacks", "Karaage Chicken", "Japanese Eats"),
-            ("Sides", "Deep Fried Chicken Gyoza", "Japanese Eats"),
+            ("Chicken Feast", "8 Pieces Karaage", "Japanese Eats"),
+            ("Fluffy Chicken Bowl", "Teriyaki Karaage Don", "Japanese Eats"),
+            ("Drinks", "Affogato Float", "Drinks"),
             ("Basque Cheesecake", "Original Basque Cheesecake - Slice", "Cheesecakes"),
             ("Basque Cheesecake", "Warm Brownie with Ice Cream Scoop", "Pastries"),
             ("Fluffy Pancakes", "Signature Pancakes", "Pancakes"),
             ("Pancakes", "Special Pancake Combo (come with a free ice cream)", "Promotions"),
             ("Sweet Croffles", "Oreo Croffles", "Pastries"),
-            ("Extra Sweet", "Affogato", ""),
             ("Espresso Latte", "Fluffy Pumpkin Spice Tiramisu Latte", "Drinks"),
         ]:
             with self.subTest(item=item):
@@ -134,6 +146,15 @@ class MappingWorkflowTests(unittest.TestCase):
         self.assertEqual((row["Category"], row["Review Status"]), ("", "Excluded"))
         result = workflow.apply_mapping(source, pd.DataFrame([row]), draft=True)
         self.assertIn("intentionally", result.iloc[0]["Exception Reason"])
+
+    def test_cheena_answers_are_dated_in_the_evidence(self):
+        source = self.source.iloc[[0]].copy()
+        source["Source Item"], source["Source Group"] = "Affogato", "Extra Sweet"
+        source["POS Sheet"] = "TOAST"
+        source["Mapping ID"] = workflow.mapping_id("TOAST", "Extra Sweet", "Affogato")
+        row = workflow.propose_mapping(source, self.reference).iloc[0]
+        self.assertEqual((row["Category"], row["Review Status"]), ("Pastries", "Pending"))
+        self.assertEqual(row["Evidence"], "Business decision 2026-11-05")
 
     def test_changed_category_drops_the_old_reference_path(self):
         reference = pd.DataFrame([
@@ -304,6 +325,34 @@ class MappingWorkflowTests(unittest.TestCase):
             self.assertFalse(failing.exists())
             self.assertFalse(failing.with_name("failing.building.xlsx").exists())
 
+    def test_list_section_follows_the_list_and_the_entry_category(self):
+        menu = self.menu_list()
+        for item, category, expected in [
+            ("BLT Sandwich", "Sandwiches", "SANDWICHES"),
+            ("latte", "Drinks", "DRINKS"),                  # curated section beats UNCATEGORIZED
+            ("Tater Tots", "Appetizers", "APPETIZER"),      # listed twice: follow the category
+            ("Tater Tots", "Add-Ons", "ADD-ONS"),
+            ("Tater Tots", "Drinks", "APPETIZER"),          # no match: first section on the list
+            ("Cafe Mocha", "Drinks", workflow.UNSORTED_SECTION),
+            ("Bleh", "", workflow.NOT_LISTED),
+        ]:
+            with self.subTest(item=item, category=category):
+                self.assertEqual(workflow.list_section(menu, item, category), expected)
+
+    def test_menu_list_layout_adds_sections_and_keeps_totals(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            source = self.small_workbook(directory)
+            mapping = Path(directory) / "mapping.xlsx"
+            workflow.make_mapping(source, mapping, self.small_menu_list(directory))
+            output = Path(directory) / "list report.xlsx"
+            audit = workflow.make_report(source, mapping, output, None, None, draft=True,
+                                         all_dates=True, native=False, layout="menu-list")
+            data = pd.read_excel(output, sheet_name="PMIXData", dtype=object)
+        self.assertEqual(audit["Row layout"], "Menu List Section > Item")
+        self.assertEqual(dict(zip(data["Item"], data[workflow.LIST_SECTION])),
+                         {"BLT Sandwich": "SANDWICHES", "Latte": "DRINKS - COFFEE"})
+        self.assertEqual(audit["Selected net Qty"], audit["Pivot net Qty"] + audit["Exception net Qty"])
+
     def test_mapping_dropdown_covers_every_allowed_category(self):
         with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
             output = Path(directory) / "mapping.xlsx"
@@ -404,6 +453,176 @@ class MappingWorkflowTests(unittest.TestCase):
                 self.assertEqual(rows[2], (dt.datetime(2026, 8, 24, 9, 12), True, "", 0))
             finally:
                 book.close()
+
+
+class CarryOverTests(unittest.TestCase):
+    """A new map run on new data keeps what a reviewer decided in the previous master."""
+
+    def setUp(self):
+        tests = MappingWorkflowTests("test_map_covers_all_rows_and_blank_groups")
+        tests.setUp()
+        self.mapping = tests.mapping  # Signature Pancakes (Pancakes) and D (no category)
+        self.pancake = self.mapping.iloc[0]["Mapping ID"]
+        self.blank = self.mapping.iloc[1]["Mapping ID"]
+
+    def previous(self, **changes):
+        frame = self.mapping.copy()
+        for column, value in changes.items():
+            frame.loc[0, column] = value
+        return frame
+
+    def test_approved_decision_and_its_item_name_are_kept(self):
+        previous = self.previous(**{"Category": "Fluffy All Day", "Item": "Signature Pancake",
+                                    "Review Status": "Approved", "Evidence": "Cheena review",
+                                    "Menu List Status": "Listed", "Menu List Match": "x [PANCAKES]"})
+        mapping, earlier, changes = workflow.carry_over(self.mapping, previous)
+        row = mapping.set_index("Mapping ID").loc[self.pancake]
+        self.assertEqual((row["Category"], row["Item"], row["Review Status"], row["Evidence"]),
+                         ("Fluffy All Day", "Signature Pancake", "Approved", "Cheena review"))
+        self.assertEqual(row["Menu List Status"], "Listed")
+        self.assertEqual(row["Rows"], 2)  # counts come from the new data
+        self.assertEqual(changes["Change"].tolist(), [workflow.KEPT])
+        self.assertIn("rules now give 'Pancakes'", changes.iloc[0]["Details"])
+        self.assertTrue(earlier.empty)
+
+    def test_new_items_are_listed_and_left_pending(self):
+        mapping, _, changes = workflow.carry_over(self.mapping, self.mapping.iloc[[0]])
+        self.assertEqual(changes.set_index("Mapping ID").loc[self.blank, "Change"], workflow.NEW_ITEM)
+        self.assertEqual(mapping.set_index("Mapping ID").loc[self.blank, "Review Status"], "Pending")
+        self.assertEqual(len(changes), 1)
+
+    def test_pending_hand_edit_follows_the_rules_and_is_reported(self):
+        mapping, _, changes = workflow.carry_over(self.mapping, self.previous(Category="Drinks"))
+        self.assertEqual(mapping.set_index("Mapping ID").loc[self.pancake, "Category"], "Pancakes")
+        self.assertEqual(changes["Change"].tolist(), [workflow.REBUILT])
+        self.assertIn("Category: was 'Drinks', now 'Pancakes'", changes.iloc[0]["Details"])
+
+    def test_unchanged_previous_mapping_reports_nothing(self):
+        mapping, earlier, changes = workflow.carry_over(self.mapping, self.mapping)
+        pd.testing.assert_frame_equal(mapping, self.mapping)
+        self.assertTrue(changes.empty and earlier.empty)
+
+    def test_reviewed_items_not_in_this_data_are_kept_for_later(self):
+        gone = self.previous(**{"Mapping ID": "old", "Source Item": "Old Item",
+                                "Review Status": "Approved"})
+        pending_gone = self.previous(**{"Mapping ID": "old2", "Source Item": "Old Pending"})
+        previous = pd.concat([self.mapping, gone.iloc[[0]], pending_gone.iloc[[0]]])
+        _, earlier, _ = workflow.carry_over(self.mapping, previous)
+        self.assertEqual(earlier["Mapping ID"].tolist(), ["old"])
+
+    def test_invalid_approved_category_is_refused(self):
+        previous = self.previous(**{"Category": "Desserts", "Review Status": "Approved"})
+        with self.assertRaisesRegex(ValueError, "invalid Category"):
+            workflow.carry_over(self.mapping, previous)
+
+    def test_read_previous_adds_earlier_decisions_and_current_rows_win(self):
+        earlier = self.previous(**{"Category": "Drinks", "Review Status": "Approved"}).iloc[[0]]
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            path = Path(directory) / "previous.xlsx"
+            with pd.ExcelWriter(path, engine="xlsxwriter") as writer:
+                workflow.write_table(writer, "Menu Category", self.mapping)
+                workflow.write_table(writer, workflow.EARLIER_SHEET, earlier)
+            previous = workflow.read_previous(path)
+        self.assertEqual(len(previous), 2)
+        self.assertEqual(previous.set_index("Mapping ID").loc[self.pancake, "Category"], "Pancakes")
+
+
+class ReviewDecisionTests(unittest.TestCase):
+    """Reviewer decisions (review_decisions.json) and the recategorize.py helpers."""
+
+    def setUp(self):
+        tests = MappingWorkflowTests("test_map_covers_all_rows_and_blank_groups")
+        tests.setUp()
+        self.source, self.reference = tests.source, tests.reference
+        self.menu = workflow.MenuList([("PANCAKES", "Signature Pancakes"), ("ADD-ONS", "Avocado"),
+                                       ("DRINKS - JUICE", "Apple Juice")])
+        self.pancake = workflow.mapping_id("TOAST", "Pancakes", "Signature Pancakes")
+        self.blank = workflow.mapping_id("SQUARE", "", "D")
+
+    def propose(self, decisions):
+        return workflow.propose_mapping(self.source, self.reference, self.menu, {},
+                                        decisions).set_index("Mapping ID")
+
+    def test_sections_are_stored_in_the_mapping(self):
+        mapping = self.propose({})
+        self.assertEqual(mapping.loc[self.pancake, workflow.LIST_SECTION], "PANCAKES")
+        self.assertEqual(mapping.loc[self.blank, workflow.LIST_SECTION], workflow.NOT_LISTED)
+
+    def test_decision_moves_renames_and_approves_last(self):
+        mapping = self.propose({self.blank: {"status": "Approved", "section": "DRINKS - JUICE",
+                                             "item": "Apple Juice", "by": "Cheena 2026-11-06"}})
+        row = mapping.loc[self.blank]
+        self.assertEqual((row["Category"], row[workflow.LIST_SECTION], row["Item"], row["Review Status"]),
+                         ("Drinks", "DRINKS - JUICE", "Apple Juice", "Approved"))
+        self.assertEqual(row["Evidence"], "Reviewed by Cheena 2026-11-06")
+        self.assertEqual(row["Menu List Status"], workflow.RENAMED)
+        self.assertEqual((row["Menu"], row["Menu group"]), ("Drinks", "Drinks"))
+
+    def test_extra_section_and_its_category(self):
+        mapping = self.propose({self.pancake: {"status": "Approved", "section": "PROMOTIONS", "by": "x"}})
+        self.assertEqual(mapping.loc[self.pancake, "Category"], "Promotions")
+        self.assertEqual(mapping.loc[self.pancake, workflow.LIST_SECTION], "PROMOTIONS")
+
+    def test_section_category_keeps_a_fitting_category(self):
+        self.assertEqual(workflow.section_category("FLUFFY ALL DAY - SANDWICHES", "Fluffy All Day"),
+                         "Fluffy All Day")
+        self.assertEqual(workflow.section_category("COMBOS", "Promotions"), "Combos")
+        self.assertEqual(workflow.section_category("DRINKS - TEA", "Pancakes"), "Drinks")
+        self.assertEqual(workflow.section_category("UNCATEGORIZED", "Pancakes"), "Pancakes")
+
+    def test_canonical_section_reads_reviewer_spellings(self):
+        sections = ["FLUFFY ALL DAY - ENTREES", "FLUFFY ALL DAY - SANDWICHES", "SWEET CROFFLES",
+                    "APPETIZER", "ADD-ONS", *workflow.EXTRA_SECTIONS]
+        for typed, expected in (("Fluffy All Day - Entrée", "FLUFFY ALL DAY - ENTREES"),
+                                ("Fluffy All Day -Sandwiches", "FLUFFY ALL DAY - SANDWICHES"),
+                                ("Croffles", "SWEET CROFFLES"), ("Appetizer", "APPETIZER"),
+                                ("Add-Ons", "ADD-ONS"), ("Promotions", "PROMOTIONS"),
+                                ("Desserts", None)):
+            with self.subTest(typed=typed):
+                self.assertEqual(workflow.canonical_section(typed, sections), expected)
+
+    def test_carry_over_does_not_undo_a_newer_decision(self):
+        decisions = {self.pancake: {"status": "Approved", "section": "PROMOTIONS", "by": "x"}}
+        mapping = workflow.propose_mapping(self.source, self.reference, self.menu, {}, decisions)
+        previous = mapping.copy()
+        previous.loc[0, ["Category", "Review Status"]] = ["Pancakes", "Approved"]
+        carried, _, changes = workflow.carry_over(mapping, previous, set(decisions))
+        self.assertEqual(carried.iloc[0]["Category"], "Promotions")
+        self.assertEqual(changes["Change"].tolist(), [workflow.REVIEW_APPLIED])
+
+    def test_recategorize_reads_remarks(self):
+        import recategorize as rc
+        self.assertEqual(rc.instruction("Rename to Apple Juice"), ("rename", "Apple Juice", ""))
+        self.assertEqual(rc.instruction("Raname to Roll Cake"), ("rename", "Roll Cake", ""))
+        self.assertEqual(rc.instruction("Rename to Mango Pancakes, if item is under Pancakes Category"),
+                         ("rename", "Mango Pancakes", "Pancakes"))
+        self.assertEqual(rc.instruction('Remove " (Cold or Hot)" in item name'),
+                         ("remove", " (Cold or Hot)", ""))
+        self.assertEqual(rc.instruction("Remove # character in the item name"), ("remove", "#", ""))
+        self.assertEqual(rc.instruction("Ube Pancakes"), ("rename", "Ube Pancakes", ""))
+        self.assertEqual(rc.apply_instruction("Matcha Latte - Cold", "remove", " -Cold"), "Matcha Latte")
+        self.assertEqual(rc.apply_instruction("#Add On Ice Cream", "remove", "#"), "Add On Ice Cream")
+        self.assertIsNone(rc.apply_instruction("Latte", "remove", " (Hot)"))
+        self.assertEqual(rc.apply_instruction("Thai Tea Iced Tea", "remove", " Iced"), "Thai Tea")
+        self.assertEqual(rc.apply_instruction("Fluffy Fluffy Latte - Hot", "remove", " -Hot"),
+                         "Fluffy Fluffy Latte")
+
+    def test_recategorize_reads_threaded_cell_comments(self):
+        import recategorize as rc
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            path = Path(directory) / "commented.xlsx"
+            book = openpyxl.Workbook()
+            book.active.title = "PMIXData"
+            book.active["P3"] = "Pending"
+            book.active["P3"].comment = openpyxl.comments.Comment("Comment:\nRename to Strawberry Pancakes", "x")
+            book.save(path)
+            self.assertEqual(rc.read_cell_comments(path, "PMIXData"), [(3, "Rename to Strawberry Pancakes")])
+
+    def test_recategorize_snaps_typos_but_never_drops_words(self):
+        import recategorize as rc
+        menu = workflow.MenuList([("X", "Mocha Espresso"), ("X", "Basque Cheesecake - Slice")])
+        self.assertEqual(rc.snap("Mocha Expresso", menu), "Mocha Espresso")
+        self.assertEqual(rc.snap("Oreo Basque Cheesecake - Slice", menu), "Oreo Basque Cheesecake - Slice")
 
 
 if __name__ == "__main__":

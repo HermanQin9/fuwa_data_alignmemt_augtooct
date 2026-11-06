@@ -10,6 +10,7 @@ import hashlib
 import json
 import shutil
 import tempfile
+import unicodedata
 from pathlib import Path
 
 import re
@@ -25,6 +26,38 @@ REPORT = RESULT / "USA PMix - PMIX Report DRAFT.xlsx"
 MAPPING = RESULT / "USA PMix - Menu Mapping.xlsx"
 TUCKER = {"Fluffy Fluffy Tucker GA": "Fluffy Fluffy - Tucker"}
 COLUMNS = {"TOAST": ("Menu Group", "Menu Item", "Sent Date"), "SQUARE": ("Category", "Item", "Date")}
+# The field the first slicer and the top row level use, per report layout.
+GROUP = {"category": "Category", "menu-list": "Menu List Section"}
+JSON_NAME = {"category": "VALIDATION_RESULTS.json", "menu-list": "VALIDATION_RESULTS - Menu List.json"}
+
+
+def squash(value):
+    """Spelling-insensitive key, restated here so this audit stays independent of the workflow."""
+    s = unicodedata.normalize("NFKD", str(value).strip().lower().lstrip("#").replace("&", " and "))
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    return " ".join(re.findall(r"[a-z0-9]+", s))
+
+
+def section_finder(mapping_path):
+    """Item + Category -> Menu Items List section, from the list copy saved in the mapping."""
+    listed = pd.read_excel(mapping_path, sheet_name="Menu Items List", dtype=object, keep_default_na=False)
+    curated, unsorted = {}, set()
+    for section, name in zip(listed["Section"], listed["Menu Item"]):
+        key = squash(name)
+        if section == "UNCATEGORIZED":
+            unsorted.add(key)
+        elif section not in curated.setdefault(key, []):
+            curated[key].append(section)
+
+    def one(text):
+        return re.sub(r"s\b", "", squash(text))
+
+    def find(item, category):
+        key = squash(item)
+        if key in curated:
+            return next((s for s in curated[key] if one(s) == one(category)), curated[key][0])
+        return "UNCATEGORIZED" if key in unsorted else "Not in Menu Items List"
+    return find
 
 
 def mapping_id(sheet, group, item):
@@ -45,7 +78,7 @@ def stated_window(report):
             pd.Timestamp(stated["Inclusive end date"]))
 
 
-def expected_rows(source, mapping_path, first, last):
+def expected_rows(source, mapping_path, first, last, layout="category"):
     parts = []
     for sheet, (group, item, date) in COLUMNS.items():
         # keep_default_na=False: a source group that is literally "None" or "NA" is text, not blank.
@@ -63,16 +96,31 @@ def expected_rows(source, mapping_path, first, last):
     rows = rows[rows["day"].between(first, last)].reset_index(drop=True)
     mapping = pd.read_excel(mapping_path, sheet_name="Menu Category", dtype=object,
                             keep_default_na=False)
-    rows = rows.merge(mapping[["Mapping ID", "Category", "Review Status"]],
+    rows = rows.merge(mapping[["Mapping ID", "Category", "Item", "Review Status"]],
                       left_on="id", right_on="Mapping ID", how="left", validate="many_to_one")
     assert rows["Category"].notna().all(), "A source row has no mapping"
+    if layout == "menu-list":
+        find = section_finder(mapping_path)
+        looked_up = {r["Mapping ID"]: find(r["Item"], r["Category"]) for r in mapping.to_dict("records")}
+        saved = dict(zip(mapping["Mapping ID"], mapping.get("Menu List Section", "")))
+        evidence = dict(zip(mapping["Mapping ID"], mapping["Evidence"]))
+        # A saved section that differs from the list lookup must be a recorded reviewer decision.
+        for ident, section in saved.items():
+            if section and section != looked_up[ident]:
+                assert str(evidence[ident]).startswith("Reviewed by"), (
+                    f"Section {section!r} differs from the list ({looked_up[ident]!r}) without a review")
+        group = {i: saved.get(i) or looked_up[i] for i in looked_up}
+        rows["group"] = rows["id"].map(group)
+    else:
+        rows["group"] = rows["Category"]
     return rows, mapping
 
 
 class Live:
     """The open report, with the slicers addressed by the field they filter."""
 
-    def __init__(self, book):
+    def __init__(self, book, group="Category"):
+        self.group = group
         self.sheet = book.Worksheets("PMIX")
         self.pivot = self.sheet.PivotTables("MenuPMIX")
         self.caches = {cache.SourceName: cache for cache in book.SlicerCaches}
@@ -91,7 +139,7 @@ class Live:
         return float(self.totals_row(1))
 
     def clear(self):
-        for name in ("Category", "Location", "Month", "Week starting"):
+        for name in (self.group, "Location", "Month", "Week starting"):
             self.caches[name].ClearManualFilter()
 
     def choose(self, field, names):
@@ -123,7 +171,9 @@ def overlaps(a, b):
                 or a[1] + a[3] <= b[1] or b[1] + b[3] <= a[1])
 
 
-def run_excel(rows, report):
+def run_excel(rows, report, group="Category"):
+    """Drive the live report. `group` is the top row field and first slicer; rows["group"] holds
+    each sale's expected value for it."""
     classified = rows[rows["Category"].ne("") & rows["Review Status"].ne("Excluded")]
     checks, failures = {}, []
 
@@ -141,7 +191,7 @@ def run_excel(rows, report):
             excel.Visible = False
             excel.DisplayAlerts = False
             book = excel.Workbooks.Open(str(copy))
-            live = Live(book)
+            live = Live(book, group)
             pivot = live.pivot
             by_location = book.Worksheets("By Location")
             grid = by_location.PivotTables("MenuByLocation")
@@ -157,11 +207,11 @@ def run_excel(rows, report):
             check("All locations column exists", "All locations" in header, True)
             check("no Chinese on PMIX", chinese_cells(live.sheet), [])
             check("no Chinese on By Location", chinese_cells(by_location), [])
-            categories = sorted(i.Name for i in pivot.PivotFields("Category").PivotItems())
-            check("category list", categories, sorted(classified["Category"].unique()))
+            categories = sorted(i.Name for i in pivot.PivotFields(group).PivotItems())
+            check("category list", categories, sorted(classified["group"].unique()))
 
-            for name, qty in classified.groupby("Category")["qty"].sum().items():
-                live.choose("Category", {name})
+            for name, qty in classified.groupby("group")["qty"].sum().items():
+                live.choose(group, {name})
                 check("single category", live.total(), int(qty))
                 check("By Location follows category", int(grid.GetPivotData("Qty (#)").Value), int(qty))
                 check("filtered percent is 100%", round(live.percent(), 9), 1.0)
@@ -180,13 +230,13 @@ def run_excel(rows, report):
             stores = sorted(classified["location"].unique())
             months = sorted(classified["month"].unique())
             pick_stores = set(stores[:3])
-            pick_cats = set(sorted(classified["Category"].unique())[:2])
+            pick_cats = set(sorted(classified["group"].unique())[:2])
             pick_month = months[len(months) // 2]
             live.choose("Location", pick_stores)
-            live.choose("Category", pick_cats)
+            live.choose(group, pick_cats)
             live.choose("Month", {pick_month})
             wanted = classified[classified["location"].isin(pick_stores)
-                                & classified["Category"].isin(pick_cats)
+                                & classified["group"].isin(pick_cats)
                                 & classified["month"].eq(pick_month)]
             check("several stores, categories and a month", live.total(), int(wanted["qty"].sum()))
             live.clear()
@@ -203,7 +253,7 @@ def run_excel(rows, report):
             live.clear()
             check("all filters cleared", live.total(), int(classified["qty"].sum()))
 
-            item = pivot.PivotFields("Category").PivotItems(categories[0])
+            item = pivot.PivotFields(group).PivotItems(categories[0])
             collapsed_rows = pivot.TableRange1.Rows.Count
             item.ShowDetail = True
             expanded_rows = pivot.TableRange1.Rows.Count
@@ -240,10 +290,14 @@ def main():
     parser.add_argument("--report", type=Path, default=REPORT)
     parser.add_argument("--mapping", type=Path, default=MAPPING)
     parser.add_argument("--source", type=Path, default=SOURCE)
+    parser.add_argument("--layout", choices=sorted(GROUP), default="category",
+                        help="Layout the report was built with (pmix_workflow.py --layout)")
+    parser.add_argument("--json-dir", type=Path, default=RESULT,
+                        help="Folder for the results JSON (run_pipeline.py checks a staging folder)")
     args = parser.parse_args()
     status, first, last = stated_window(args.report)
-    rows, mapping = expected_rows(args.source, args.mapping, first, last)
-    checks, failures = run_excel(rows, args.report)
+    rows, mapping = expected_rows(args.source, args.mapping, first, last, args.layout)
+    checks, failures = run_excel(rows, args.report, GROUP[args.layout])
     classified = rows[rows["Category"].ne("") & rows["Review Status"].ne("Excluded")]
     blank = mapping[mapping["Category"].eq("")]
     result = {
@@ -260,13 +314,15 @@ def main():
         "entries_with_no_category": len(blank),
         "report_locations": int(rows["location"].nunique()),
         "categories_in_report": int(classified["Category"].nunique()),
+        "row_layout": args.layout,
+        "top_level_groups_in_report": int(classified["group"].nunique()),
         "date_window": [str(first.date()), str(last.date())],
         "live_excel_checks": checks,
         "live_excel_checks_run": sum(checks.values()),
         "live_excel_failures": failures,
         "overall": "PASS" if not failures else "FAIL",
     }
-    (RESULT / "VALIDATION_RESULTS.json").write_text(
+    (args.json_dir / JSON_NAME[args.layout]).write_text(
         json.dumps(result, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
     print(json.dumps(result, indent=2, ensure_ascii=True))
     return 1 if failures else 0
