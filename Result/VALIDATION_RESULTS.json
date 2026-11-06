@@ -7,13 +7,13 @@
   "exception_rows": 260,
   "exception_net_qty": 263,
   "mapping_entries": 2102,
-  "entries_pending_review": 2101,
+  "entries_pending_review": 96,
   "entries_excluded": 1,
   "entries_with_no_category": 41,
   "report_locations": 19,
-  "categories_in_report": 11,
+  "categories_in_report": 12,
   "row_layout": "category",
-  "top_level_groups_in_report": 11,
+  "top_level_groups_in_report": 12,
   "date_window": [
     "2026-08-03",
     "2026-10-25"
@@ -28,9 +28,9 @@
     "no Chinese on PMIX": 1,
     "no Chinese on By Location": 1,
     "category list": 1,
-    "single category": 11,
-    "By Location follows category": 11,
-    "filtered percent is 100%": 11,
+    "single category": 12,
+    "By Location follows category": 12,
+    "filtered percent is 100%": 12,
     "single store": 19,
     "single month": 3,
     "several stores, categories and a month": 1,
@@ -49,7 +49,7 @@
     "By Location slicers overlap the table": 1,
     "exception notice intact": 1
   },
-  "live_excel_checks_run": 108,
+  "live_excel_checks_run": 111,
   "live_excel_failures": [],
   "overall": "PASS"
 }
