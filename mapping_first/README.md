@@ -23,7 +23,7 @@ files are kept in `../versions/`.
 ## Categories
 
 Pancakes; Fluffy All Day; Drinks; Japanese Eats; Cheesecakes; Pastries; Promotions; Add-Ons;
-Sandwiches; Appetizers; Miscellaneous.
+Sandwiches; Appetizers; Miscellaneous; Combos (Cheena, 2026-11-06: combos are not Promotions).
 
 `Promotions` deliberately corrects `Pormotions` in the reference. Nothing is forced into a
 category to reach zero unmapped: unknown items stay blank and appear in `Exceptions`.
@@ -83,7 +83,7 @@ section, the Category that goes with it, the item name, who decided and a note. 
 - The Category follows the section: an entry keeps its own Category when it fits the section
   (for example a Fluffy All Day item under FLUFFY ALL DAY - SANDWICHES), otherwise it takes the
   section's usual one. `SECTION_CATEGORIES` in `pmix_workflow.py` holds the table, taken from
-  Cheena's approvals; COMBOS counts as Promotions, ICE CREAM and SMALL BITES as Add-Ons.
+  Cheena's approvals; COMBOS is Combos, ICE CREAM and SMALL BITES are Add-Ons.
 - `from-report` reads two things from a reviewed report: PMIXData's `Review Status` column, where
   each item is `Approved`, `Pending` or a section name to move it to; and `CATEGORY` / `REMARKS`
   columns typed beside the items on the PMIX sheet. Remarks understood: `Rename to X`, `Remove

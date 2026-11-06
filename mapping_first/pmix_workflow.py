@@ -23,6 +23,8 @@ CATEGORIES = [
     "Cheesecakes", "Pastries", "Promotions", "Add-Ons",
     # Added by business decision, 2026-10-31.
     "Sandwiches", "Appetizers", "Miscellaneous",
+    # Cheena, 2026-11-06: combos are their own category, not Promotions.
+    "Combos",
 ]
 # Business decision, 2026-10-31: the Square Tucker label is the same store as the Toast one.
 LOCATION_ALIASES = {"Fluffy Fluffy Tucker GA": "Fluffy Fluffy - Tucker"}
@@ -63,7 +65,7 @@ EXTRA_SECTIONS = ["PROMOTIONS", "MISCELLANEOUS"]
 # whose category is already in the set keeps it. Taken from Cheena's approvals of 2026-11-06.
 SECTION_CATEGORIES = {
     "ADD-ONS": ["Add-Ons", "Pastries"], "APPETIZER": ["Appetizers"], "BAR DRINKS": ["Drinks"],
-    "BASQUE CHEESECAKES": ["Cheesecakes"], "COMBOS": ["Promotions"],
+    "BASQUE CHEESECAKES": ["Cheesecakes"], "COMBOS": ["Combos"],
     "FLUFFY ALL DAY - ENTREES": ["Fluffy All Day", "Sandwiches"],
     "FLUFFY ALL DAY - SANDWICHES": ["Sandwiches", "Fluffy All Day", "Add-Ons", "Pastries"],
     "ICE CREAM": ["Add-Ons"], "MERCHANDISE": ["Miscellaneous"], "OMELLETES": ["Fluffy All Day"],

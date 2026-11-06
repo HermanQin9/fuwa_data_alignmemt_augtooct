@@ -79,8 +79,8 @@ class MappingWorkflowTests(unittest.TestCase):
                     workflow.apply_mapping(self.source, bad, draft=True)
 
     def test_allowed_categories_include_the_business_additions(self):
-        self.assertEqual(len(workflow.CATEGORIES), 11)
-        for category in ("Sandwiches", "Appetizers", "Miscellaneous"):
+        self.assertEqual(len(workflow.CATEGORIES), 12)
+        for category in ("Sandwiches", "Appetizers", "Miscellaneous", "Combos"):
             self.assertIn(category, workflow.CATEGORIES)
 
     def test_business_rules(self):
@@ -566,7 +566,7 @@ class ReviewDecisionTests(unittest.TestCase):
     def test_section_category_keeps_a_fitting_category(self):
         self.assertEqual(workflow.section_category("FLUFFY ALL DAY - SANDWICHES", "Fluffy All Day"),
                          "Fluffy All Day")
-        self.assertEqual(workflow.section_category("COMBOS", "Pancakes"), "Promotions")
+        self.assertEqual(workflow.section_category("COMBOS", "Promotions"), "Combos")
         self.assertEqual(workflow.section_category("DRINKS - TEA", "Pancakes"), "Drinks")
         self.assertEqual(workflow.section_category("UNCATEGORIZED", "Pancakes"), "Pancakes")
 
@@ -603,6 +603,20 @@ class ReviewDecisionTests(unittest.TestCase):
         self.assertEqual(rc.apply_instruction("Matcha Latte - Cold", "remove", " -Cold"), "Matcha Latte")
         self.assertEqual(rc.apply_instruction("#Add On Ice Cream", "remove", "#"), "Add On Ice Cream")
         self.assertIsNone(rc.apply_instruction("Latte", "remove", " (Hot)"))
+        self.assertEqual(rc.apply_instruction("Thai Tea Iced Tea", "remove", " Iced"), "Thai Tea")
+        self.assertEqual(rc.apply_instruction("Fluffy Fluffy Latte - Hot", "remove", " -Hot"),
+                         "Fluffy Fluffy Latte")
+
+    def test_recategorize_reads_threaded_cell_comments(self):
+        import recategorize as rc
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            path = Path(directory) / "commented.xlsx"
+            book = openpyxl.Workbook()
+            book.active.title = "PMIXData"
+            book.active["P3"] = "Pending"
+            book.active["P3"].comment = openpyxl.comments.Comment("Comment:\nRename to Strawberry Pancakes", "x")
+            book.save(path)
+            self.assertEqual(rc.read_cell_comments(path, "PMIXData"), [(3, "Rename to Strawberry Pancakes")])
 
     def test_recategorize_snaps_typos_but_never_drops_words(self):
         import recategorize as rc

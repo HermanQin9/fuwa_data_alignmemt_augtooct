@@ -3228,9 +3228,10 @@
   "status": "Approved",
   "category": "Pancakes",
   "section": "PANCAKES",
-  "item": "Crème Brulee",
+  "item": "Crème Brulee Pancakes",
   "by": "Cheena 2026-11-06",
-  "note": "Moved to PANCAKES by Cheena 2026-11-06."
+  "note": "Moved to PANCAKES by Cheena 2026-11-06; renamed from 'Crème Brulee' (cell comment).",
+  "renamed_from": "Crème Brulee"
  },
  "f2b3dbdf06fdaa405b6bd2bfbbbb1a5e218a72ba31105803158ef4f7ade62cc9": {
   "source": "TOAST |  | Creme Brullee",
@@ -7314,7 +7315,7 @@
  "729f47f7913a720cefa46abe6e029f7c6186003fd1beb1b6e111ec5e7ea4acde": {
   "source": "TOAST | Breakfast Combo | All Day Breakfast Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "All Day Breakfast Combo",
   "by": "Cheena 2026-11-06",
@@ -7323,7 +7324,7 @@
  "fa74e16be843597e791f783397898c067f9d984a9124d85f5ad641083ee61e39": {
   "source": "TOAST | Breakfast Combo | B.E.L.T Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "B.E.L.T Combo",
   "by": "Cheena 2026-11-06",
@@ -7332,7 +7333,7 @@
  "52d257752b9b7a68c8556fc3903a8a274374fd0ae6d5a080cb5c3bb350f8ea20": {
   "source": "TOAST | Breakfast Combo | Breakfast Sandwich Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Breakfast Sandwich Combo",
   "by": "Cheena 2026-11-06",
@@ -7341,7 +7342,7 @@
  "921ed52df26f2668ed3a3bb837d217b370686535fe6cc56e5dca9115e8df2465": {
   "source": "TOAST | Breakfast Combo | Eggs Benedict Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Eggs Benedict Combo",
   "by": "Cheena 2026-11-06",
@@ -7350,7 +7351,7 @@
  "985747173b481a9cc38529f14237a1377fb152a414ec7194951616850c3e1f81": {
   "source": "TOAST | Breakfast Combo | Ham & Cheese Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Ham & Cheese Combo",
   "by": "Cheena 2026-11-06",
@@ -7359,7 +7360,7 @@
  "fde065a794a771a504bd02952461c428a965d15c79d018a91e8d1a8dfce3011a": {
   "source": "TOAST | Breakfast Combo | Jalapeños Maple Chicken & Pancakes Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Jalapeños Maple Chicken & Pancakes Combo",
   "by": "Cheena 2026-11-06",
@@ -7368,7 +7369,7 @@
  "2af47754304f83b6430ee92545fb6415dbe283f93213fbd29148a9aeb8d1e556": {
   "source": "TOAST | Breakfast Combo | Smoked Salmon Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Smoked Salmon Combo",
   "by": "Cheena 2026-11-06",
@@ -7377,7 +7378,7 @@
  "6bb2d3b756f1c72ca51844d15578f029e56a6c56cb4e8ad702cd3a9cd7ad5468": {
   "source": "TOAST | Breakfast Combo | Turkey & Cheese Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Turkey & Cheese Combo",
   "by": "Cheena 2026-11-06",
@@ -8343,7 +8344,7 @@
  "0ede83cca186988f3d00fb5eb0e416a27140d80116de2837cd9a7f7604154ff7": {
   "source": "TOAST | Combo Meal | Jalapeños Maple Chicken and Pancakes + Refresher",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Jalapeños Maple Chicken and Pancakes + Refresher",
   "by": "Cheena 2026-11-06",
@@ -8352,7 +8353,7 @@
  "57315a125600e633fbd1a4b8fa5c5dc07829730c479b0529fae1903fddb29b69": {
   "source": "TOAST | Combos | Ham & Cheese croffle Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Ham & Cheese Croffle Combo",
   "by": "Cheena 2026-11-06",
@@ -8361,7 +8362,7 @@
  "0db94460d2bc77b8d04faf6ddd01763e02e9119cd780566d987937723532c5ec": {
   "source": "TOAST | Combos | Turkey & Cheese Croffle Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Turkey & Cheese Croffle Combo",
   "by": "Cheena 2026-11-06",
@@ -10118,7 +10119,7 @@
  "614fe9178f8095230d5c965a43934314d0ed2e0959586555e50297908f016447": {
   "source": "TOAST | Fluffy Chicken Sandwich (New!) | Fluffy Chicken Sandwich Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Fluffy Chicken Sandwich Combo",
   "by": "Cheena 2026-11-06",
@@ -10136,7 +10137,7 @@
  "c48f3c0b64fd318c25725b82145a83a0b9d4f66fd004bcb21aa3d80d3630d7ac": {
   "source": "TOAST | Fluffy Chicken Sandwich (New!)* | Fluffy Chicken Sandwich Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Fluffy Chicken Sandwich Combo",
   "by": "Cheena 2026-11-06",
@@ -10145,7 +10146,7 @@
  "e354d5b54267b4cba5a83cb81b3b7b61c216bee8f67f609c3947aeafcb906043": {
   "source": "TOAST | Fluffy Combo | Cookies & Cream Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Cookies & Cream Combo",
   "by": "Cheena 2026-11-06",
@@ -10154,7 +10155,7 @@
  "621b59a3ca79db541e6e94eaeb6e4361c070291ca3b84b6b9bc88e08fe306540": {
   "source": "TOAST | Fluffy Combo | Creme Brulee Pancake",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Crème Brulee Pancake",
   "by": "Cheena 2026-11-06",
@@ -10163,7 +10164,7 @@
  "daf280b1f4666070c1b2d949624b4be23ce501e3c8290c61745b22db324c1e14": {
   "source": "TOAST | Fluffy Combo | Matcha Tiramisu Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Matcha Tiramisu Combo",
   "by": "Cheena 2026-11-06",
@@ -10172,7 +10173,7 @@
  "04cce81d2bbd8e6a5b0afef4eef468e85fad835cd2a73c165ec87876f673f98a": {
   "source": "TOAST | Fluffy Combo | Nutella Banana Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Nutella Banana Combo",
   "by": "Cheena 2026-11-06",
@@ -10181,7 +10182,7 @@
  "448758dca6562cd3253f368a71a16449af8743d52c48f7a02f33eb8c6b7d712c": {
   "source": "TOAST | Fluffy Combo | Signature Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Signature Combo",
   "by": "Cheena 2026-11-06",
@@ -10190,7 +10191,7 @@
  "140f5417bd6cbabceeef74a87739e2bcc39543f19edaf00b677d16f9e35fc57c": {
   "source": "TOAST | Fluffy Combo | Special All Day Meal Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Special All Day Meal Combo",
   "by": "Cheena 2026-11-06",
@@ -10199,7 +10200,7 @@
  "740f5967ea2034b4db35782b3b27e6c1c174f491496cee687a73b3b7874ba8ec": {
   "source": "TOAST | Fluffy Combo | Strawberry Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Strawberry Combo",
   "by": "Cheena 2026-11-06",
@@ -10208,7 +10209,7 @@
  "102d7390f776a811a5f64900ac692299d19e175aaca11caac5003ab9b00aa0ad": {
   "source": "TOAST | Fluffy Combo | Tiramisu Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Tiramisu Combo",
   "by": "Cheena 2026-11-06",
@@ -10532,6 +10533,16 @@
   "item": "Cookies and Cream Pancakes",
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
+ },
+ "b434a7a2e981d85e144e4f68fd1ee110c82d12d8b98961301d053e1acbf2e12c": {
+  "source": "TOAST | Fluffy Pancakes | Creme Brulee Pancake",
+  "status": "Approved",
+  "category": "Pancakes",
+  "section": "PANCAKES",
+  "item": "Crème Brulee Pancakes",
+  "by": "Cheena 2026-11-06",
+  "note": "PANCAKES by Cheena 2026-11-06; renamed from 'Crème Brulee Pancake'.",
+  "renamed_from": "Crème Brulee Pancake"
  },
  "af3b9448a7559bbdaa539fde219f28cd679321f6c939b49e9e68766d01d74605": {
   "source": "TOAST | Fluffy Pancakes | Creme Brulee Pancakes",
@@ -11548,7 +11559,7 @@
   "status": "Approved",
   "category": "Drinks",
   "section": "DRINKS - TEA",
-  "item": "Thai Tea Tea",
+  "item": "Thai Tea",
   "by": "Cheena 2026-11-06",
   "note": "DRINKS - TEA by Cheena 2026-11-06; renamed from 'Thai Tea Iced Tea'.",
   "renamed_from": "Thai Tea Iced Tea"
@@ -12958,9 +12969,10 @@
   "status": "Approved",
   "category": "Pancakes",
   "section": "PANCAKES",
-  "item": "Signature Pancake",
+  "item": "Signature Pancakes",
   "by": "Cheena 2026-11-06",
-  "note": "PANCAKES by Cheena 2026-11-06."
+  "note": "PANCAKES by Cheena 2026-11-06; renamed from 'Signature Pancake' (cell comment).",
+  "renamed_from": "Signature Pancake"
  },
  "4e2089c71fc9ab2c5d8975ea75230c2d120cec58598b1d2c185942db2c16e509": {
   "source": "TOAST | Pancakes | Signature Pancakes",
@@ -14250,7 +14262,7 @@
  "bca066dc47e9aed8299c406a38d11c934a728696b12652ab70981d529f1004c6": {
   "source": "TOAST | Sandwich | Fluffy Chicken Sandwich Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Fluffy Chicken Sandwich Combo",
   "by": "Cheena 2026-11-06",
@@ -14305,7 +14317,7 @@
  "334acb3bb3741b7e4c707557198ee3d3c9d9f7e477050f0cfb12b2cd7f899718": {
   "source": "TOAST | Sandwich* | Fluffy Chicken Sandwich Combo",
   "status": "Approved",
-  "category": "Promotions",
+  "category": "Combos",
   "section": "COMBOS",
   "item": "Fluffy Chicken Sandwich Combo",
   "by": "Cheena 2026-11-06",
@@ -17360,9 +17372,10 @@
   "status": "Approved",
   "category": "Pancakes",
   "section": "PANCAKES",
-  "item": "Crème Brulee",
+  "item": "Crème Brulee Pancakes",
   "by": "Cheena 2026-11-06",
-  "note": "Moved to PANCAKES by Cheena 2026-11-06."
+  "note": "Moved to PANCAKES by Cheena 2026-11-06; renamed from 'Crème Brulee' (cell comment).",
+  "renamed_from": "Crème Brulee"
  },
  "4858708cdedec6bb1d94a0b48dd3dfa2b5fffbfa30de2433381fa0defee0bda8": {
   "source": "TOAST | Sweet Pancakes | Creme Brulee Pancakes",
@@ -17573,9 +17586,10 @@
   "status": "Approved",
   "category": "Pancakes",
   "section": "PANCAKES",
-  "item": "Signature pancake",
+  "item": "Signature Pancakes",
   "by": "Cheena 2026-11-06",
-  "note": "PANCAKES by Cheena 2026-11-06."
+  "note": "PANCAKES by Cheena 2026-11-06; renamed from 'Signature pancake' (cell comment).",
+  "renamed_from": "Signature pancake"
  },
  "c57709f9077c780c97974da69ef5a519efdf568fb1fa96f137ce659669a6c35e": {
   "source": "TOAST | Sweet Pancakes | Souffle Pancakes",
@@ -17591,9 +17605,10 @@
   "status": "Approved",
   "category": "Pancakes",
   "section": "PANCAKES",
-  "item": "Strawberry",
+  "item": "Strawberry Pancakes",
   "by": "Cheena 2026-11-06",
-  "note": "PANCAKES by Cheena 2026-11-06."
+  "note": "PANCAKES by Cheena 2026-11-06; renamed from 'Strawberry' (cell comment).",
+  "renamed_from": "Strawberry"
  },
  "43302c9348ecb17fc2ad4ee1a6477d6ef2ed04bd02c77aa3b3441d1d22fa866f": {
   "source": "TOAST | Sweet Pancakes | Strawberry Pancakes",
@@ -18157,9 +18172,10 @@
   "status": "Approved",
   "category": "Pancakes",
   "section": "PANCAKES",
-  "item": "Signature Pancake",
+  "item": "Signature Pancakes",
   "by": "Cheena 2026-11-06",
-  "note": "PANCAKES by Cheena 2026-11-06."
+  "note": "PANCAKES by Cheena 2026-11-06; renamed from 'Signature Pancake' (cell comment).",
+  "renamed_from": "Signature Pancake"
  },
  "88b0add533abc9ac869f14ee7389223bb9211f47d556ff12f2211cfd7f048df4": {
   "source": "TOAST | Top 10 Picks | Signature Pancakes",

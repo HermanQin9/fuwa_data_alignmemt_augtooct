@@ -24,6 +24,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+import html
+import zipfile
+
 import openpyxl
 import pandas as pd
 
@@ -71,7 +74,14 @@ def apply_instruction(name: str, kind: str, value: str) -> str | None:
         # Spacing-insensitive: 'Remove " -Cold"' also removes " - Cold".
         pattern = r"\s*".join(re.escape(c) for c in value if not c.isspace())
         found = re.search(pattern, name, re.I)
-        return wf.tidy(name[:found.start()] + " " + name[found.end():]) if found else None
+        if not found:
+            return None
+        # A removal must not leave a doubled word where it cut ('Thai Tea Iced Tea' less ' Iced'
+        # is 'Thai Tea'); doubles elsewhere, like 'Fluffy Fluffy Latte', are left alone.
+        before, after = wf.tidy(name[:found.start()]).split(), wf.tidy(name[found.end():]).split()
+        if before and after and before[-1].casefold() == after[0].casefold():
+            after = after[1:]
+        return wf.tidy(" ".join(before + after))
     return name
 
 
@@ -97,14 +107,18 @@ def decision(entry: dict, by: str, section: str, item: str, status: str, note: s
     return made
 
 
-def save(decisions: dict, check: dict[str, list], label: str, menu_list: wf.MenuList) -> Path:
+def save(decisions: dict, check: dict[str, list], label: str, menu_list: wf.MenuList,
+         known: set | None = None) -> Path:
     stored = wf.load_review_decisions()
     replaced = sum(1 for k in decisions if k in stored)
     stored.update(decisions)
     wf.REVIEW_FILE.write_text(json.dumps(dict(sorted(stored.items(), key=lambda kv: kv[1]["source"])),
                                          indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    # Renamed to a name that is neither on the list nor already an item name in the data.
+    known = {wf.normalized(n) for n in known or ()}
     unlisted = sorted({d["item"] for d in decisions.values()
-                       if d.get("renamed_from") and not menu_list.find(d["item"])})
+                       if d.get("renamed_from") and not menu_list.find(d["item"])
+                       and wf.normalized(d["item"]) not in known})
     check["Names not on the list"] = [{"Item": n} for n in unlisted]
     path = RESULT / f"Recategorize Check - {label}.xlsx"
     path = path.with_name(f"{path.stem} {dt.datetime.now():%Y%m%d-%H%M%S}.xlsx")
@@ -150,6 +164,37 @@ def read_pmix_notes(report: Path, report_sections: set[str]) -> tuple[list[dict]
     return notes, general
 
 
+def read_cell_comments(book_path: Path, sheet: str) -> list[tuple[int, str]]:
+    """(Excel row, text) of every comment on a sheet: threaded comments, else legacy notes."""
+    with zipfile.ZipFile(book_path) as book:
+        names = set(book.namelist())
+        workbook = book.read("xl/workbook.xml").decode("utf-8")
+        rels = book.read("xl/_rels/workbook.xml.rels").decode("utf-8")
+        found = re.search(r'<sheet [^>]*name="%s"[^>]*r:id="([^"]+)"' % re.escape(html.escape(sheet)), workbook)
+        if not found:
+            return []
+        target = re.search(r'Id="%s"[^>]*Target="([^"]+)"' % found.group(1), rels) or \
+            re.search(r'Target="([^"]+)"[^>]*Id="%s"' % found.group(1), rels)
+        part = target.group(1).split("/")[-1]
+        sheet_rels = f"xl/worksheets/_rels/{part}.rels"
+        if sheet_rels not in names:
+            return []
+        links = re.findall(r'Target="([^"]+)"', book.read(sheet_rels).decode("utf-8"))
+        threaded = [t for t in links if "threadedComment" in t]
+        legacy = [t for t in links if re.search(r"comments?\d*\.xml$", t) and "threaded" not in t]
+        comments = []
+        for link in threaded or legacy:
+            part = link.lstrip("/") if link.startswith("/") else "xl/" + link.replace("../", "")
+            xml = book.read(part).decode("utf-8")
+            if threaded:
+                found = re.findall(r'<threadedComment [^>]*ref="[A-Z]+(\d+)"[^>]*>.*?<text>(.*?)</text>', xml, re.S)
+            else:
+                found = [(r, re.sub(r"<[^>]+>", "", t).split("Comment:")[-1])
+                         for r, t in re.findall(r'<comment ref="[A-Z]+(\d+)"[^>]*>(.*?)</comment>', xml, re.S)]
+            comments += [(int(r), html.unescape(t).strip()) for r, t in found]
+    return comments
+
+
 def from_report(report: Path, by: str, menu_list_path: Path) -> dict:
     sections = sections_list(menu_list_path)
     menu_list = wf.MenuList(wf.read_menu_list(menu_list_path))
@@ -160,7 +205,8 @@ def from_report(report: Path, by: str, menu_list_path: Path) -> dict:
     per_entry = data.groupby("Mapping ID").agg(
         status=("Review Status", lambda s: sorted(set(s))), category=("Category", "first"),
         section=(wf.LIST_SECTION, "first"), item=("Item", "first"))
-    check = {"Could not apply": [], "Still Pending": [], "General remarks": []}
+    check = {"Could not apply": [], "Still Pending": [], "General remarks": [], "Inferred": [],
+             "Cell comments": []}
     decisions, targets = {}, {}
     for ident, row in per_entry.iterrows():
         entry = {**entries[ident], "Category": row["category"]}
@@ -173,7 +219,8 @@ def from_report(report: Path, by: str, menu_list_path: Path) -> dict:
             continue
         if status == "Approved":
             decisions[ident] = {"source": source_label(entry), "status": "Approved",
-                                "category": row["category"], "section": row["section"],
+                                "category": wf.section_category(row["section"], row["category"]),
+                                "section": row["section"],
                                 "item": row["item"], "by": by, "note": f"Approved by {by}."}
             continue
         section = wf.canonical_section(status, sections)
@@ -205,6 +252,13 @@ def from_report(report: Path, by: str, menu_list_path: Path) -> dict:
             if section is None and deferred and condition and                     wf.singular(condition) == wf.singular(row["category"]):
                 # "Rename ..., if item is under Pancakes Category" and this entry's Category is Pancakes.
                 section = wf.canonical_section(condition, sections)
+            fallback = False
+            if section is None and deferred and not condition:
+                # "See PMIXData", but that row was left Pending: the entry's own Category names
+                # the section (a Pancakes entry goes under PANCAKES), and the name follows the
+                # list spelling her other renames of that item use.
+                section = wf.canonical_section(row["category"], sections)
+                fallback = section is not None
             if section is None:
                 problem = ("PMIXData status not set" if deferred
                            else f"Unknown section {note['target']!r}") if note["target"] else "No CATEGORY"
@@ -227,9 +281,38 @@ def from_report(report: Path, by: str, menu_list_path: Path) -> dict:
                                                          f"{note['remark']!r}: text not in {item!r}"})
                     else:
                         item = renamed
+            if fallback:
+                item = snap(item, menu_list)
+                check["Inferred"].append({"Source": source_label(entry), "Section": section, "Item": item,
+                                          "Why": "Note says see PMIXData, but that row was left Pending"})
             status = "Pending" if section == wf.UNSORTED_SECTION else "Approved"
             text = f"{section} by {by}" + (f"; renamed from {row['item']!r}" if item != row["item"] else "")
             decisions[ident] = decision(entry, by, section, item, status, text + ".", row["item"])
+    # Comments on PMIXData cells, e.g. "Rename to Crème Brulee Pancakes" on that item's rows.
+    row_ids = dict(zip(range(2, len(data) + 2), data["Mapping ID"]))
+    asked = {}
+    for excel_row, comment in read_cell_comments(report, "PMIXData"):
+        if excel_row in row_ids:
+            asked.setdefault(row_ids[excel_row], set()).add(comment)
+    for ident, comments in asked.items():
+        row, entry = per_entry.loc[ident], {**entries[ident], "Category": per_entry.loc[ident, "category"]}
+        if len(comments) > 1:
+            check["Could not apply"].append({"Source": source_label(entry), "Problem": f"Comments differ: {sorted(comments)}"})
+            continue
+        comment = comments.pop()
+        kind, value, _ = instruction(comment)
+        made = decisions.get(ident) or decision(entry, by, row["section"], row["item"],
+                                                "Pending", f"Commented by {by}.")
+        renamed = apply_instruction(made["item"], kind, value) if kind else None
+        if not renamed:
+            check["Could not apply"].append({"Source": source_label(entry), "Problem": f"Comment {comment!r}"})
+            continue
+        if renamed != made["item"]:
+            made["renamed_from"] = made.get("renamed_from") or row["item"]
+            made["item"] = renamed
+            made["note"] = made["note"].rstrip(".") + f"; renamed from {row['item']!r} (cell comment)."
+        decisions[ident] = made
+        check["Cell comments"].append({"Source": source_label(entry), "Comment": comment, "Item": made["item"]})
     # Follow a rename onto another note's rename ('Iced Vanilla Late' -> 'Vanilla Late' -> 'Vanilla
     # Latte'), then snap a near miss to the list's spelling.
     final = {}
@@ -255,7 +338,7 @@ def from_report(report: Path, by: str, menu_list_path: Path) -> dict:
         if ident not in decisions:
             check["Still Pending"].append({"Source": source_label(entries[ident]),
                                            "Section": row["section"], "Item": row["item"]})
-    save(decisions, check, "report", menu_list)
+    save(decisions, check, "report", menu_list, set(per_entry["item"]))
     return decisions
 
 
