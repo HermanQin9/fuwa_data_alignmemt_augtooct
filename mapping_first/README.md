@@ -12,15 +12,17 @@ decision files (`mapping_overrides.json`, `menu_name_overrides.json`, `review_de
 
 ## Current status
 
-- The report is a **draft**. Mapping entries stay `Pending` until the business marks them
-  `Approved`, and a final build refuses Pending entries.
+- The reports are **final** (2026-08-03 to 2026-10-25). Cheena finished the review on 2026-11-10.
+  The mapping has no Pending entries, and a final build refuses any.
 - Categories and tests reflect the business decisions of 2026-10-31, Cheena's answers of
-  2026-11-05 and her reviews of 2026-11-06 and 2026-11-09 (`review_decisions.json`): 2,062
-  entries Approved, with her sections and item names. On 2026-11-09 she placed the Basque
+  2026-11-05 and her reviews of 2026-11-06, 2026-11-09 and 2026-11-10 (`review_decisions.json`):
+  2,062 entries Approved, with her sections and item names. On 2026-11-09 she placed the Basque
   cheesecakes, Bellini and Cream, approved T-Shirt, confirmed `Crème Brulee Pancakes` and moved
-  Raspberry Caramelized Banana Pancakes (a `FREE ICE CREAM` item) to Promotions. 39 entries
-  stay Pending and unplaced in `Exceptions` because she could not place them, and Custom Amount
-  stays Excluded. Nothing was forced into a category.
+  Raspberry Caramelized Banana Pancakes (a `FREE ICE CREAM` item) to Promotions; on 2026-11-10
+  she confirmed that move and said the 39 items she could not place stay under UNCATEGORIZED.
+  Those 39 are recorded as `Excluded` with that reason: they sit in `Exceptions`, outside the
+  pivot, and are counted in the reconciliation. Custom Amount stays Excluded too. Nothing was
+  forced into a category.
 - Workbooks are not in Git, because this repository is public and they hold store sales data.
 
 ## Categories
@@ -91,7 +93,8 @@ section, the Category that goes with it, the item name, who decided and a note. 
   each item is `Approved`, `Pending` or a section name to move it to; the same column on the
   `Exceptions` sheet (2026-11-09), where a section places an item the pivot does not hold,
   `Uncategorized` means the reviewer could not place it (it stays a Pending exception, with the
-  review recorded), and an `Excluded` entry such as Custom Amount is left Excluded; and `CATEGORY` / `REMARKS`
+  review recorded; on 2026-11-10 Cheena said to leave such items under UNCATEGORIZED, so those
+  39 were set to `Excluded` in `review_decisions.json`), and an `Excluded` entry such as Custom Amount is left Excluded; and `CATEGORY` / `REMARKS`
   columns typed beside the items on the PMIX sheet. Remarks understood: `Rename to X`, `Remove
   "text" in item name` (spacing-insensitive), `Remove # character`, a bare name, and `..., if item
   is under <section> Category`. A rename that lands on another remarked name follows it, and a
@@ -286,7 +289,10 @@ For an approved report, drop `--draft --all-dates` and give `--start` and `--end
 
 ## Adding sales amounts (Gross Sales, Discount, Net Sales)
 
-Cheena asked on 2026-11-09 whether extra columns in PMIXData would cause a problem.
+Cheena asked on 2026-11-09 whether extra columns in PMIXData would cause a problem. On
+2026-11-10 she said the columns are easy to handle in the pivot, that her concern is the
+categorizing and naming of items, and that the discount is per transaction row. They are not
+added yet: the data has no amounts.
 
 - **The PivotTable can take them.** `PMIXData` is an Excel Table and the PivotTable's source is
   the table name, so a column inside the table becomes a field after Refresh. Existing rows,

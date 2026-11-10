@@ -1,12 +1,12 @@
 # Result
 
-The current output of the PMIX workflow. Everything here is a draft until the business approves
-the mapping.
+The current output of the PMIX workflow. These are the final reports: Cheena finished the review
+on 2026-11-10 (window 2026-08-03 to 2026-10-25).
 
 | File | What it is | In Git |
 |---|---|---|
-| `USA PMix - PMIX Report DRAFT.xlsx` | The interactive report, rows by Category > Menu > Menu group > Item | No |
-| `USA PMix - Menu List Report DRAFT.xlsx` | The same report with rows by Menu Items List section > Item | No |
+| `USA PMix - PMIX Report.xlsx` | The interactive report, rows by Category > Menu > Menu group > Item | No |
+| `USA PMix - Menu List Report.xlsx` | The same report with rows by Menu Items List section > Item | No |
 | `USA PMix - Menu Mapping.xlsx` | The editable category mapping behind both reports | No |
 | `Menu Items List - with additions.xlsx` | Cheena's Menu Items List plus the 16 names she approved on 2026-11-09, for her to finalize. `../Menu Items List.xlsx` itself is unchanged | No |
 | `VALIDATION_RESULTS.json` | Overall totals and pass/fail results for the PMIX report | Yes |
@@ -22,7 +22,7 @@ same totals; only the row grouping differs.
 In the mapping workbook, `Menu List Status` and `Menu List Match` show which items are on Cheena's
 `Menu Items List.xlsx`. Filter `Menu List Status` for `Not in Menu Items List` to see the items
 that still need a clean name. Item names were cleaned against that list. Cheena's review of
-2026-11-06 and 2026-11-09 then set sections, names and approvals; `Menu List Section` shows where
+2026-11-06, 2026-11-09 and 2026-11-10 then set sections, names and approvals; `Menu List Section` shows where
 each item is reported, and Evidence `Reviewed by Cheena <date>` marks her decisions.
 
 The repository is public, so the workbooks stay on the local machine. They hold store sales data
@@ -39,3 +39,6 @@ A mapping built by the pipeline also has a `Changes` sheet (new items, and rows 
 changed) and an `Earlier Decisions` sheet (approved items not in the current data).
 
 To run everything on new data, or rebuild or re-check these files, see [`../mapping_first/README.md`](../mapping_first/README.md).
+
+The `Exceptions` sheet holds the entries kept out of the pivot: Custom Amount, and the 39 items
+Cheena could not place, which stay under UNCATEGORIZED (status Excluded, with her reason).
