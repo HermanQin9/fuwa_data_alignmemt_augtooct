@@ -126,6 +126,15 @@
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
  },
+ "a9e51b8a3194ea35f1e215f7b467585cdee98b324de1baca2362367380b0807e": {
+  "source": "SQUARE | Desserts | Cheesecake Slice",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Cheesecake Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
  "6925ea0e946edf8eee6efbe8f3435017a2c801d90c866a4f26c94f1df7f7bd2a": {
   "source": "SQUARE | Desserts | Two Scoop Vanilla Ice cream",
   "status": "Approved",
@@ -1919,6 +1928,15 @@
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
  },
+ "2742de0bfe09c146392f4fc029bcf2748d4cf753727695726eafa087718e6940": {
+  "source": "SQUARE | Pastry | #Mango Burnt Top Cheesecake (Slice)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Mango Burnt Top Cheesecake (Slice)",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
  "c9b19e5f2dd61fae201393ecbedc0c49b048707d6fe4ef1374873df8c253447c": {
   "source": "SQUARE | Pastry | #Original Roll Cake",
   "status": "Approved",
@@ -1927,6 +1945,78 @@
   "item": "Original Roll Cake",
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
+ },
+ "747984eaf389b6b0c9619e9b352e243df4a1fad4c8bd98414b393d8e1e6a2aea": {
+  "source": "SQUARE | Pastry | Chicken",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Chicken",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
+ "4fab644bf14450a71aeaa9200eda5876f09c808a446770c2808b89d917e93301": {
+  "source": "SQUARE | Pastry | Chocolate Burnt Top Cheesecake",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Chocolate Burnt Top Cheesecake",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "74f9a21b89b8ebe76dc8952ae9129952dfd9b40b823021ade95e9fc2c391149f": {
+  "source": "SQUARE | Pastry | Coffe",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Coffe",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
+ "bdd7e16c0027c373b49c7ab57a8f71f5452e01da3d9ff703991d9b7ccb9f3a4c": {
+  "source": "SQUARE | Pastry | For",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "For",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
+ "7a48ba7ccd86ac5b8f98352b01c60d13bc5c20e76f79ebc8ffbd6a1c52f12b4b": {
+  "source": "SQUARE | Pastry | Mango Burnt Top Cheesecake (Slice)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Mango Burnt Top Cheesecake (Slice)",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "4bb638b41f4ce44d7fc5d8d5e1f9bf2de7fef1c6ffcc7e6e71b3d2fa3ba12c98": {
+  "source": "SQUARE | Pastry | Oreo And Bisco W",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Oreo And Bisco W",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
+ "528a559534fe30f1fce70479d402330ef8b1a74565e43e3a5304ec19046b9d99": {
+  "source": "SQUARE | Pastry | Oreo Tiramisu Burnt Top Cheesecake (Slice)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Oreo Tiramisu Burnt Top Cheesecake (Slice)",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "d060912b97e3675b9056c8279b5ad426ab0713f1e24dfeaf072d2a3f7a533b6b": {
+  "source": "SQUARE | Pastry | Original Burnt Top Cheesecake (Slice)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Original Burnt Top Cheesecake (Slice)",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
  },
  "638b15eb716a021235436f24366d6551b06b5ac0a498778a21143501f2c9bbe6": {
   "source": "SQUARE | Pastry | Red Velvet Cheese Cake (Slice)",
@@ -2353,6 +2443,15 @@
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
  },
+ "64261ff066525d2169d8fdb0c4fe72e1da088c0b2cee8a2e3f105b38eb825d4c": {
+  "source": "TOAST |  | 1",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "1",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "1039864ceb532d20533b6e98e750585c9cf540f2f36804cfcd83bee014988a7d": {
   "source": "TOAST |  | 1 Pancake",
   "status": "Approved",
@@ -2578,6 +2677,15 @@
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
  },
+ "745beab716770e8ec153e4af972d7975bddf1fa3454b6fb5557c318d8f8805b6": {
+  "source": "TOAST |  | A",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "A",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "00b8fea063b5f0dff7d4aeb710d330d7392e6bb473b89ef4ceeffd578296d377": {
   "source": "TOAST |  | Acacado Toaste",
   "status": "Approved",
@@ -2624,6 +2732,15 @@
   "by": "Cheena 2026-11-06",
   "note": "ADD-ONS by Cheena 2026-11-06."
  },
+ "19858032cdf51c0c6f3a76e0c6a41983321614bc4eda2c70db62648f17eb5f5a": {
+  "source": "TOAST |  | Al",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Al",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "f8385ea0a7286ceb7199ea55b009dad172b2a783762e50fd6d3c34dc33586e0f": {
   "source": "TOAST |  | Alani",
   "status": "Approved",
@@ -2661,6 +2778,15 @@
   "item": "Apple",
   "by": "Cheena 2026-11-06",
   "note": "ADD-ONS by Cheena 2026-11-06."
+ },
+ "efe05d1aa54a5e80c55a4254ddd8ce2d72a08bcde70709aa863735900604adb8": {
+  "source": "TOAST |  | Apple Caramel",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Apple Caramel",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
  },
  "d298c43a9a9a72888f1455af561470e80105bedb8b743a9f0dd625c7134c2806": {
   "source": "TOAST |  | Apple Caramelize Pancake",
@@ -2807,6 +2933,15 @@
   "by": "Cheena 2026-11-06",
   "note": "ADD-ONS by Cheena 2026-11-06."
  },
+ "021fe2cf16016905a5c4ed16739b1c9f7afbb824ddede1f4910bf6eba5c45dce": {
+  "source": "TOAST |  | Bcbnjvx",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Bcbnjvx",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "0e75c68024ad9811c29953916356f044061b9fcadf7d162e0cb6ff2f18b25fcc": {
   "source": "TOAST |  | Berries And Fruit",
   "status": "Approved",
@@ -2852,6 +2987,15 @@
   "item": "Black Tea",
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
+ },
+ "523e40a1277b1eb649fb12fb0673b771e66094c7eb497616d15c79cc9315d416": {
+  "source": "TOAST |  | Bleh",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Bleh",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
  },
  "d7e91aaecb71397555af7d146389477d8a3abf1d2f81a7cd4e35d03b8a64eddc": {
   "source": "TOAST |  | Bluberry Muffin",
@@ -2907,6 +3051,15 @@
   "item": "Brownie",
   "by": "Cheena 2026-11-06",
   "note": "PASTRIES by Cheena 2026-11-06."
+ },
+ "57137b0b4b26268c24cd599236a6c8d472a94f5bcf94a45fcec0a65951d7c074": {
+  "source": "TOAST |  | Byrij",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Byrij",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
  },
  "a4f92483270cc559d7cb9eff9c4fd171f42e025be9c339958c55168b0a85d92f": {
   "source": "TOAST |  | Caie Pop",
@@ -3004,6 +3157,15 @@
   "note": "PASTRIES by Cheena 2026-11-06; renamed from 'Cakepop'.",
   "renamed_from": "Cakepop"
  },
+ "aee7c9891f75d02ced097970e9028ad71858d800d50af86d591a6781e967409c": {
+  "source": "TOAST |  | Candy",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Candy",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "f3541c6cc1051d0266e17ba9af12c1713c16bf3bc6b67cc5f134cc25e788d688": {
   "source": "TOAST |  | Caramel Brownie",
   "status": "Approved",
@@ -3061,6 +3223,15 @@
   "by": "Cheena 2026-11-06",
   "note": "BASQUE CHEESECAKES by Cheena 2026-11-06."
  },
+ "376d3d4fbac92ff0d420a3f0b122661090a3cc3e99835ddfd54c039b3d82e76a": {
+  "source": "TOAST |  | Cheese",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Cheese",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "0144c35ec770440e6f9f9a2c6eb322c1340dc6c5cd23cad354cd61cde5ddf20a": {
   "source": "TOAST |  | Cheese Slice",
   "status": "Approved",
@@ -3078,6 +3249,15 @@
   "item": "Cheesecake",
   "by": "Cheena 2026-11-06",
   "note": "BASQUE CHEESECAKES by Cheena 2026-11-06."
+ },
+ "420530a653cf277770ead7d435ca809dc8852804f09f005639db3ab2c26b9aa4": {
+  "source": "TOAST |  | Chicken",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Chicken",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
  },
  "d1db8eca1380e413e51fae1d54320c2bacc944a840b6ba039989cbc488462db3": {
   "source": "TOAST |  | Chicken 8peices Maple Jalapeno",
@@ -3098,6 +3278,15 @@
   "by": "Cheena 2026-11-06",
   "note": "JAPANESE EATS - CHICKEN BOWLS by Cheena 2026-11-06; renamed from 'Chicken Bowl Sweetheat'.",
   "renamed_from": "Chicken Bowl Sweetheat"
+ },
+ "39f79e332e3e3f600bb841e6c9520fd8a858cb1ab3f4fc7203d7fd9b4d04cacb": {
+  "source": "TOAST |  | Chicken Pa",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Chicken Pa",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
  },
  "1a93056bea474ed6cf84c27b1b6c3cd7907b1731a241cec9dbf2b55c55f99184": {
   "source": "TOAST |  | Chicken Salad",
@@ -3174,6 +3363,24 @@
   "note": "DRINKS - COFFEE by Cheena 2026-11-06; renamed from 'Chocomilk'.",
   "renamed_from": "Chocomilk"
  },
+ "de96292867ba7f58d9f8c971ead8ad528f0a708b64d723aa3a5ab793f6109b57": {
+  "source": "TOAST |  | Claudia",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Claudia",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
+ "557195dd273bc2dd71e9a98cf9612d246d5cd36b909a321931a89844995e217c": {
+  "source": "TOAST |  | Coco",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Coco",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "b4d1ebd61d7decdd120f864b70aefe139b4f6ba7203da0532b9f341419027029": {
   "source": "TOAST |  | Coke Pop",
   "status": "Approved",
@@ -3193,6 +3400,24 @@
   "by": "Cheena 2026-11-06",
   "note": "DRINKS - COFFEE by Cheena 2026-11-06; renamed from 'Cold Chocolate Milk'.",
   "renamed_from": "Cold Chocolate Milk"
+ },
+ "73ce88a4e0bdbcf6ff29c706d2ad7af47ccaa7a61358a91d8a5384a6e80ffb24": {
+  "source": "TOAST |  | Cqkr Oioo",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Cqkr Oioo",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
+ "3087aa8eee7448f054bdf2614386d640146dfa043e3001e5c5abceae28d6e9e3": {
+  "source": "TOAST |  | Cream",
+  "status": "Approved",
+  "category": "Add-Ons",
+  "section": "ADD-ONS",
+  "item": "Cream",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to ADD-ONS by Cheena 2026-11-09."
  },
  "81014336184f69c2e10090cd08d06308c960641c4e3e43b3c2b74f202079270b": {
   "source": "TOAST |  | Cream And Strawberries On Side",
@@ -3317,6 +3542,15 @@
   "by": "Cheena 2026-11-06",
   "note": "ADD-ONS by Cheena 2026-11-06."
  },
+ "767083da3870125f0500d5236025b95a70c0de42842600192d4f27c8465f1fa2": {
+  "source": "TOAST |  | D",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "D",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "cadc1a5884116d485e5c286149fa8a2aaeee40927fbb647fc083d16a9afb3556": {
   "source": "TOAST |  | Diff",
   "status": "Approved",
@@ -3346,12 +3580,12 @@
  },
  "53be49b5f165669a38a10f1a9e5cec55fe850750d343e97b572cafba39384b53": {
   "source": "TOAST |  | Drink",
-  "status": "Pending",
+  "status": "Approved",
   "category": "Drinks",
   "section": "UNCATEGORIZED",
   "item": "Drink",
-  "by": "Cheena 2026-11-06",
-  "note": "UNCATEGORIZED by Cheena 2026-11-06."
+  "by": "Cheena 2026-11-09",
+  "note": "Approved by Cheena 2026-11-09."
  },
  "8bd90de47167be9ce7146f0ae807e2964ffcc8d45d49e1d6741fd272d7f48dd1": {
   "source": "TOAST |  | Earthquake Donation",
@@ -3534,6 +3768,15 @@
   "by": "Cheena 2026-11-06",
   "note": "ADD-ONS by Cheena 2026-11-06."
  },
+ "f2c72e73ed4fedef989bb04a9eadfdf27bd2024912a890607a7de08c02580ef4": {
+  "source": "TOAST |  | Fruit Forest",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Fruit Forest",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "785bd122c7e571c0db12a321bd90e823478032da77607a35af0a33b829397463": {
   "source": "TOAST |  | Fruit Side",
   "status": "Approved",
@@ -3551,6 +3794,15 @@
   "item": "Fruit. Cup",
   "by": "Cheena 2026-11-06",
   "note": "ADD-ONS by Cheena 2026-11-06."
+ },
+ "412a000a88e4fdaa6a6a04d1cda964dace3bb9820d07521306f0876f9477f5df": {
+  "source": "TOAST |  | G",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "G",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
  },
  "62c79587f77f7cac0e7be0cf2547a9927f064ce6a38f9098cba8bff5c586831f": {
   "source": "TOAST |  | Gift Card",
@@ -3632,6 +3884,15 @@
   "item": "Hollandaise",
   "by": "Cheena 2026-11-06",
   "note": "ADD-ONS by Cheena 2026-11-06."
+ },
+ "21049338a9d982b7609abaa4c42d4f560e0c2ee256470b89b7dae60077fac0a5": {
+  "source": "TOAST |  | Hot",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Hot",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
  },
  "06166267ed2ea412271ccfe8aa84204e73e9d1714d759c031dde858047b5255b": {
   "source": "TOAST |  | Hot Choco",
@@ -3888,6 +4149,15 @@
   "note": "SWEET CROFFLES by Cheena 2026-11-06; renamed from 'Lotus Biscoff Croffle'.",
   "renamed_from": "Lotus Biscoff Croffle"
  },
+ "4443b7518584faf49baef0c21a47132813cf7e63a26efdb8f0fbc3aab58c8198": {
+  "source": "TOAST |  | M",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "M",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "2fdbf8b28d9f3030b1732ec51eadb7aa34ad1b337afaf44e86049f328e9ca407": {
   "source": "TOAST |  | Macron",
   "status": "Approved",
@@ -3934,6 +4204,15 @@
   "item": "Mango Banana Smoothie",
   "by": "Cheena 2026-11-06",
   "note": "DRINKS - SLUSHIE/SMOOTHIES by Cheena 2026-11-06."
+ },
+ "a9cd2792c48c68c12c6c60248218b3827c9d1eccc3b72ab2afd0d66d9adaf9d2": {
+  "source": "TOAST |  | Mango Banana",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Mango Banana",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
  },
  "bc30843e63df60481fe8da2596acebfdbfbab9c0867c2d2ec59f8361aff6c93c": {
   "source": "TOAST |  | Mango Banana Smoothie",
@@ -4035,6 +4314,15 @@
   "by": "Cheena 2026-11-06",
   "note": "ADD-ONS by Cheena 2026-11-06."
  },
+ "50e84d4aaf8755daf1c7c5d73bd2dfa29711ce44976546658b63d2703ef0ffc0": {
+  "source": "TOAST |  | Maple",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Maple",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "d48f462b6f5b695dcf2065847b5cf2ca87baa2cce47f1ff2320344b0417b94eb": {
   "source": "TOAST |  | Maple Jalapeno Chicken Bowl",
   "status": "Approved",
@@ -4055,12 +4343,12 @@
  },
  "4d9440223a9d58e5936a7a164d384dad121db0eca689a0f19dd0b674098c73d6": {
   "source": "TOAST |  | Match Witybmango And Dragon Fruit",
-  "status": "Pending",
+  "status": "Approved",
   "category": "Drinks",
   "section": "UNCATEGORIZED",
   "item": "Match Witybmango And Dragon Fruit",
-  "by": "Cheena 2026-11-06",
-  "note": "UNCATEGORIZED by Cheena 2026-11-06."
+  "by": "Cheena 2026-11-09",
+  "note": "Approved by Cheena 2026-11-09."
  },
  "01755e255b0f71cf8ca6befe8c91d326c2bbe458c6563198e12dd8571be39f3a": {
   "source": "TOAST |  | Melon",
@@ -4082,12 +4370,12 @@
  },
  "38d41b2287f4baa66028a2182b17bd605b1dcdcbc7aa631df360c525a42ae593": {
   "source": "TOAST |  | Mili",
-  "status": "Pending",
+  "status": "Approved",
   "category": "Drinks",
   "section": "UNCATEGORIZED",
   "item": "Mili",
-  "by": "Cheena 2026-11-06",
-  "note": "UNCATEGORIZED by Cheena 2026-11-06."
+  "by": "Cheena 2026-11-09",
+  "note": "Approved by Cheena 2026-11-09."
  },
  "3fc72a4545b80084ba9dbc0bd58beaf321e8da3b8d6d41e32335f8fdf82229ed": {
   "source": "TOAST |  | Milk",
@@ -4253,6 +4541,24 @@
   "by": "Cheena 2026-11-06",
   "note": "ADD-ONS by Cheena 2026-11-06."
  },
+ "09fefcba68de51a284b4d43714789ecb959b0d356c9d2032c6efa73c66fbebca": {
+  "source": "TOAST |  | O",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "O",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
+ "f1b76d27fe8f49f1d3eae2dc2da30cc948628f5e912134c870eee4cb425fe785": {
+  "source": "TOAST |  | Oat",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Oat",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "685f1eec0c5fb7fc57eea6fe6913c272634b281e9a6101d39f6925096261778b": {
   "source": "TOAST |  | Oat Milk",
   "status": "Approved",
@@ -4337,6 +4643,15 @@
   "item": "Orange Juice",
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
+ },
+ "3d0295d985932fa9b00b7bd0369475e49df333819f0066955e50f0e5b4ed161f": {
+  "source": "TOAST |  | Oreo",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Oreo",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
  },
  "6cd3ed1aab6fcde185dfb8b6e9553d26ee6b57951aea52907990485880050f4b": {
   "source": "TOAST |  | Oreo Milk Shake",
@@ -4478,6 +4793,15 @@
   "by": "Cheena 2026-11-06",
   "note": "ADD-ONS by Cheena 2026-11-06."
  },
+ "6f8696e328a2f79ed2fcb2f831b9d385b21f2c35370999e0d71edc9179b7aedf": {
+  "source": "TOAST |  | Pomp",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Pomp",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "89c9400f94be222b101312faa6767317f75957326582fa22ce93e427bc119776": {
   "source": "TOAST |  | Private Event",
   "status": "Approved",
@@ -4486,6 +4810,15 @@
   "item": "Private Event",
   "by": "Cheena 2026-11-06",
   "note": "MISCELLANEOUS by Cheena 2026-11-06."
+ },
+ "bde2e102151b201c89bd1e441be127c382eadc4e414461504182a229873d40d8": {
+  "source": "TOAST |  | Pump",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Pump",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
  },
  "af6a98ee55be6ba744e6789e9dc7070c7573010caf14a5c03a2da6448e817eb1": {
   "source": "TOAST |  | Pumpkin Spice Latte",
@@ -4504,6 +4837,15 @@
   "item": "Pup Cup Wfresh Cream",
   "by": "Cheena 2026-11-06",
   "note": "ADD-ONS by Cheena 2026-11-06."
+ },
+ "e2900deb23bb1e2ce3090d280cfbb021da3a5abd4c76883e66995aa0d2d91f3b": {
+  "source": "TOAST |  | R",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "R",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
  },
  "a076e90bd75d9e814a8ff1132b422e47a6b672210b947eb67f8be5bb71a7f8ec": {
   "source": "TOAST |  | Rasberry",
@@ -4608,6 +4950,15 @@
   "by": "Cheena 2026-11-06",
   "note": "APPETIZER by Cheena 2026-11-06."
  },
+ "af2c4c9bd03939ba3f3fb5082e540661290cc3721c6211567fd4a90808d8498c": {
+  "source": "TOAST |  | Review Sftraww",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Review Sftraww",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "3928fa320d3d1591d8dd3958928fc5110df0900b316744f4e270a83c0d53b286": {
   "source": "TOAST |  | Rice",
   "status": "Approved",
@@ -4683,14 +5034,23 @@
   "by": "Cheena 2026-11-06",
   "note": "PASTRIES by Cheena 2026-11-06."
  },
+ "f3eee5d2f974a3ea7a9d5d11b3d3c0b10e1733dca553491defb4154ef9b93412": {
+  "source": "TOAST |  | S",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "S",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "eed9ddd71295de0c517d8449b8ba8886fe8c6374f29929ca7b1f999299ef28c1": {
   "source": "TOAST |  | Salted Caramel Ehole Milk",
-  "status": "Pending",
+  "status": "Approved",
   "category": "Drinks",
   "section": "UNCATEGORIZED",
   "item": "Salted Caramel Ehole Milk",
-  "by": "Cheena 2026-11-06",
-  "note": "UNCATEGORIZED by Cheena 2026-11-06."
+  "by": "Cheena 2026-11-09",
+  "note": "Approved by Cheena 2026-11-09."
  },
  "1923c2f1aff4dd91475d2eba720b732459b57b89056a7217bc287f0ecd7172ca": {
   "source": "TOAST |  | Samosa",
@@ -5280,6 +5640,15 @@
   "by": "Cheena 2026-11-06",
   "note": "ADD-ONS by Cheena 2026-11-06."
  },
+ "888dde879a02f272860aef02631fdf506bc7fcdd7718e96075b3adf8eac2d21a": {
+  "source": "TOAST |  | Sweet Heat",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Sweet Heat",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "20b97edfc33bdbb151fc5a7f6476c0fcccb8248f135bb53a024bc6d82efab2f0": {
   "source": "TOAST |  | Swiss Roll",
   "status": "Approved",
@@ -5288,6 +5657,33 @@
   "item": "Swiss Roll",
   "by": "Cheena 2026-11-06",
   "note": "PASTRIES by Cheena 2026-11-06."
+ },
+ "aca285b1af079f14c6d19071c8e4d538bf3bd2cdf0b72743788eddd1ba85d481": {
+  "source": "TOAST |  | T",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "T",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
+ "0b659a296bdd4febbb43aaa42c18452bcfbc1f3c87164ee4ad861251ca8a3aac": {
+  "source": "TOAST |  | T Shirt",
+  "status": "Approved",
+  "category": "Miscellaneous",
+  "section": "MERCHANDISE",
+  "item": "T-Shirt",
+  "by": "Cheena 2026-11-09",
+  "note": "Approved by Cheena 2026-11-09."
+ },
+ "c486575d71a6eea096fde063f58b3fa26b94b1ce175ee163bb5de64af2d3f449": {
+  "source": "TOAST |  | Taro",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Taro",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
  },
  "3f7f0cf9cb0912afd14cfc044aac5b1b2f08f0718f9cdaa3c20e6edecf86e483": {
   "source": "TOAST |  | Tatortots",
@@ -5397,6 +5793,15 @@
   "by": "Cheena 2026-11-06",
   "note": "ADD-ONS by Cheena 2026-11-06."
  },
+ "7d2c792d9eee66f8f17ff943cf33b771bfebe10fb98468d09073e46d4539996f": {
+  "source": "TOAST |  | Toastvpancakes",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Toastvpancakes",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
+ },
  "10c2648869dceb75af569f547cffacb39cfe24ec76c95a245c272ccbcab5e98c": {
   "source": "TOAST |  | Tots +coco",
   "status": "Approved",
@@ -5470,6 +5875,15 @@
   "item": "Veggie Sandwich",
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
+ },
+ "e2848e5b3745a0e754fb63981797d8a41a345d54f4e950872331f2a5be0d6c7b": {
+  "source": "TOAST |  | W",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "W",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
  },
  "623fb9f8157e08acb3064cc0335e90fdb614ddbf7dd3ac4bba002f2bef050b91": {
   "source": "TOAST |  | WTer",
@@ -6277,6 +6691,15 @@
   "by": "Cheena 2026-11-06",
   "note": "PROMOTIONS by Cheena 2026-11-06."
  },
+ "92895e26c98188408e2bdf63558d1d6d8130dde471c639a315bdfad5117bf0ec": {
+  "source": "TOAST | Basque Cheesecake | Basque Cheesecake - Slice",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
  "827f212613e168dd7eaff2333a8c25094043874d3f64069a4f033e9b74e299a4": {
   "source": "TOAST | Basque Cheesecake | Basque Cheesecake - Slice 4oz",
   "status": "Approved",
@@ -6286,6 +6709,15 @@
   "by": "Cheena 2026-11-06",
   "note": "BASQUE CHEESECAKES by Cheena 2026-11-06."
  },
+ "764fbf1103eec70480811e335c995eaf7fc956df18c80fcb36d46cff70faff05": {
+  "source": "TOAST | Basque Cheesecake | Basque Cheesecake - Whole",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Basque Cheesecake - Whole",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
  "c6034c6ab53d33e5ae24ab38426ac696db0e7dc91240189fa040942edb4b8025": {
   "source": "TOAST | Basque Cheesecake | Basque Cheesecake - Whole 12oz",
   "status": "Approved",
@@ -6294,6 +6726,42 @@
   "item": "Basque Cheesecake - Whole 12oz",
   "by": "Cheena 2026-11-06",
   "note": "BASQUE CHEESECAKES by Cheena 2026-11-06."
+ },
+ "4e8e83e20274c53549f026bbc424e1d61d63b03f574409abf9e0d77370644458": {
+  "source": "TOAST | Basque Cheesecake | Chocolate Basque Cheesecake (Slice)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Chocolate Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "0f9dda35954a8d593001445e4f13ef39999443104d2ecc48a883ed8a4ddfb539": {
+  "source": "TOAST | Basque Cheesecake | Chocolate Basque Cheesecake (Whole)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Chocolate Basque Cheesecake - Whole",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "074a90fd1d3d8ebe8a9f63d85426f253ce7d9615d85595e3101977c15c37c4f5": {
+  "source": "TOAST | Basque Cheesecake | Chocolate Basque Cheesecake - Slice",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Chocolate Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "0d9c9ffb1f4d7721946967af6704e038582dd3359db724af28a9505cab8a7ce9": {
+  "source": "TOAST | Basque Cheesecake | Chocolate Basque Cheesecake - Whole",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Chocolate Basque Cheesecake - Whole",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
  },
  "2b68d48eb0daa4518962f4749d8f5271e06ad011b2fedfb6456480fdffffbce3": {
   "source": "TOAST | Basque Cheesecake | Mango Basque Cheesecake (Slice)",
@@ -6312,6 +6780,87 @@
   "item": "Mango Basque Cheesecake (Whole)",
   "by": "Cheena 2026-11-06",
   "note": "BASQUE CHEESECAKES by Cheena 2026-11-06."
+ },
+ "d2025a7349bf146aa1bcf34ae0c4e10f9143c8d328e14e7bf1d7dbda92cc616b": {
+  "source": "TOAST | Basque Cheesecake | Matcha Basque Cheesecake (Slice)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Matcha Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "59e6e2b78e896ee2176282459558206ddcad9555fe7c36e006420c4ca9edd972": {
+  "source": "TOAST | Basque Cheesecake | Matcha Basque Cheesecake (Whole)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Matcha Basque Cheesecake - Whole",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "de4eb445f64074e10ea3223185f51bf1a2d34c4130be02ef7e645c2559fd9968": {
+  "source": "TOAST | Basque Cheesecake | Matcha Basque Cheesecake - Slice",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Matcha Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "e444b950753cc8bb02720e2841aaff46a7ba9238cee6888df480d068951c7970": {
+  "source": "TOAST | Basque Cheesecake | Matcha Basque Cheesecake - Whole",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Matcha Basque Cheesecake - Whole",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "1b9b2812caf6916801e1e83367ada1b04896d6d236fd09650f952307bd86a0c5": {
+  "source": "TOAST | Basque Cheesecake | Original Basque Cheesecake (Slice)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Original Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "02cee148d47ec5a71668d3fb4477a3675141648ce0aeed96dcbb6869d9ba788b": {
+  "source": "TOAST | Basque Cheesecake | Original Basque Cheesecake (Whole)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Original Basque Cheesecake - Whole",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "986558d1572debbec42c23982dfdab81e9d9109a050f16a9b95c0c010ba09b9d": {
+  "source": "TOAST | Basque Cheesecake | Original Basque Cheesecake - Slice",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Original Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "66cc3551e73d5acdaf71a4fcc4561ab65147726c3cc719ea2913e3a647205d58": {
+  "source": "TOAST | Basque Cheesecake | Original Basque Cheesecake - Whole",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Original Basque Cheesecake - Whole",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "106a71bcba847012e2b99a183be4596adb583650f41aa917ea43b88de4d0c8ea": {
+  "source": "TOAST | Basque Cheesecake | Ruby Black Tea Basque Cheesecake - Slice",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Ruby Black Tea Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
  },
  "92cf497944e91ced7577e15b56454743af63ad0dce8cb6d5d92f935104b4c178": {
   "source": "TOAST | Basque Cheesecake | Sliced Matcha 4oz",
@@ -6538,6 +7087,15 @@
   "by": "Cheena 2026-11-06",
   "note": "PASTRIES by Cheena 2026-11-06; renamed from 'Cakepop'.",
   "renamed_from": "Cakepop"
+ },
+ "ba2d4500303aa1034c1efc8ab52fbc72d4f58bb9e7519d17c9db345c13145679": {
+  "source": "TOAST | Basque Cheesecakes | Cheesecake (Slice)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Cheesecake Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
  },
  "968a39a96cd002b1769458cb365ab9d5b382cf492483af6e63161391ca0718ba": {
   "source": "TOAST | Basque Cheesecakes | Cheesecake (Whole)",
@@ -7703,6 +8261,33 @@
   "by": "Cheena 2026-11-06",
   "note": "PROMOTIONS by Cheena 2026-11-06."
  },
+ "75b608e7dc43b000f069d5cf5e9f2290b93ede8e69c1046b0c09c63b078a2d6f": {
+  "source": "TOAST | Cheesecake and Ice Cream | Basque Cheesecake Chocolate",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Basque Cheesecake Chocolate",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "fa2bd926f65350701ef8efcfddd49edf07d54155d433c7143c47905332571ec6": {
+  "source": "TOAST | Cheesecake and Ice Cream | Basque Cheesecake Earl Gray",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Basque Cheesecake Earl Gray",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "f85c283c8b192722d12d8c06c0485981863e42011518d22535723003d57a98b9": {
+  "source": "TOAST | Cheesecake and Ice Cream | Basque Cheesecake Matcha",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Basque Cheesecake Matcha",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
  "dd8615eb9c223b2e40571fa4938c80df6005996796a4fb71f50ca0791ff2d058": {
   "source": "TOAST | Cheesecake and Ice Cream | Basque Cheesecake Original",
   "status": "Approved",
@@ -7730,6 +8315,24 @@
   "by": "Cheena 2026-11-06",
   "note": "ICE CREAM by Cheena 2026-11-06."
  },
+ "a0a1173487d30d5d5e3ccf6eebe8657878bdb25c64d1eb8ed15d60f841a2742f": {
+  "source": "TOAST | Cheesecake and Ice Cream | Whole Cheesecake Pie",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Whole Cheesecake Pie",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "4b7c3ff56e366a6efba982a1e01630a6d6935fd5469fd3bc36ae45af2641b134": {
+  "source": "TOAST | Cheesecakes | Basque Cheesecake (Half)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Basque Cheesecake (Half)",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
  "5e40a1b77ce523880eaa8709b502b047d78296fd8b4af5365325a5757101e14a": {
   "source": "TOAST | Cheesecakes | Basque Cheesecake (mini)",
   "status": "Approved",
@@ -7739,6 +8342,51 @@
   "by": "Cheena 2026-11-06",
   "note": "BASQUE CHEESECAKES by Cheena 2026-11-06."
  },
+ "737ab8053c5bda20d23d3196887a69dc0e591662841ddaf2bf6f40f2a8de8811": {
+  "source": "TOAST | Cheesecakes | Basque Cheesecake - Whole",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Basque Cheesecake - Whole",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "b50196c754db59dec6e6349d6199d6bfb3d410cf44e6eb301ce2967deeb6829e": {
+  "source": "TOAST | Cheesecakes | Basque Cheesecake Assorted - Sliced",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Basque Cheesecake Assorted - Sliced",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "d55e6e99dbd4694729dd8a1e963e92be80cb026ea8bbd04e689fdd2851a414fe": {
+  "source": "TOAST | Cheesecakes | Basque Cheesecake Assorted - Whole",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Basque Cheesecake Assorted - Whole",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "f6dec6502aa76ae0b9f3a45efa64a5342d640c42638759cc7fd5d0b96af80a2c": {
+  "source": "TOAST | Cheesecakes | Chocolate Basque Cheesecake (SLICE)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Chocolate Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "80585cf9bf180426a31d236b35dbda2ebcf802209dbb91326ac0529560e40dd3": {
+  "source": "TOAST | Cheesecakes | Chocolate Basque Cheesecake (Whole)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Chocolate Basque Cheesecake - Whole",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
  "45560a365e7e0b380c6d09b25dce637325bb053d15fa507db0b5259e8bbef203": {
   "source": "TOAST | Cheesecakes | Ice cream",
   "status": "Approved",
@@ -7747,6 +8395,42 @@
   "item": "Ice cream",
   "by": "Cheena 2026-11-06",
   "note": "ICE CREAM by Cheena 2026-11-06."
+ },
+ "cd77dcec1d3a682a7d3a4dfe7749b0e171fc422c1a0111001bb345aba4259e81": {
+  "source": "TOAST | Cheesecakes | Matcha Basque Cheesecake (SLICE)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Matcha Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "de9630559313ff81099fed1471714eb0c94fc133eed3cf7e48f6657f7942a721": {
+  "source": "TOAST | Cheesecakes | Matcha Basque Cheesecake (Whole)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Matcha Basque Cheesecake - Whole",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "e207ca3b8d77403a53e404ef4b56f066432b69e419f7c51507be131f8d197682": {
+  "source": "TOAST | Cheesecakes | Original Basque Cheesecake (SLICE)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Original Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "7add7ed39320beb4b1b6cfa68e4e8732b7c9b7f37cf5b7540767a5e4e0597bab": {
+  "source": "TOAST | Cheesecakes | Original Basque Cheesecake (Whole)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Original Basque Cheesecake - Whole",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
  },
  "47904e4ed0b31ccae9c7ce96adc961de8838a93a2779507d36b5110f03be44eb": {
   "source": "TOAST | Chicken Bowl (Limited Time!) | Maple Jalapeno Chicken Bowl",
@@ -7981,6 +8665,15 @@
   "item": "Chicken and Croffle Thursday",
   "by": "Cheena 2026-11-06",
   "note": "PROMOTIONS by Cheena 2026-11-06."
+ },
+ "30edd436c8923532c152aabf321c9ce29b79a4b4420a3491cb777c7aa878b82e": {
+  "source": "TOAST | Cocktails | Bellini",
+  "status": "Approved",
+  "category": "Drinks",
+  "section": "BAR DRINKS",
+  "item": "Bellini",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BAR DRINKS by Cheena 2026-11-09."
  },
  "ddef2540ad47e23003e6cdddc284649e8c4d05e9e7ee3e7df5458935939e5e28": {
   "source": "TOAST | Cocktails | Franch Sparkling Wine",
@@ -8791,6 +9484,24 @@
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
  },
+ "db14495aef49e5c30d7a0a01d06924fe2f87027105d99ab6e52b79344a8e06be": {
+  "source": "TOAST | Display Case | Basque Cheesecake - Slice",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "454073fdb8cd4396dbd0e934117da62086be8a3ab79cecee9d8175c412caa464": {
+  "source": "TOAST | Display Case | Basque Cheesecake - Whole (8 slices)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Basque Cheesecake - Whole (8 slices)",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
  "fa1965ab18a68ac78f8ec20dc8729f698fe45351a4a07f6ffa2ed4c643213583": {
   "source": "TOAST | Display Case | Chocolate Mousse",
   "status": "Approved",
@@ -9346,11 +10057,11 @@
  "67b223fb3e55a1f78e14ef3167b49c81b8e196985fe9fd21830a887262b172fb": {
   "source": "TOAST | FREE ICE CREAM | Raspberry Caramel Banana Pancakes",
   "status": "Approved",
-  "category": "Pancakes",
-  "section": "PANCAKES",
+  "category": "Promotions",
+  "section": "PROMOTIONS",
   "item": "Raspberry Caramelized Banana Pancakes",
-  "by": "Cheena 2026-11-06",
-  "note": "PANCAKES by Cheena 2026-11-06; renamed from 'Raspberry Caramel Banana Pancakes'.",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to PROMOTIONS by Cheena 2026-11-09.",
   "renamed_from": "Raspberry Caramel Banana Pancakes"
  },
  "aff9e33560d69b8109e008b45771725e1fbda40a4d06fdcd6a92ead2668b5ea4": {
@@ -13156,6 +13867,15 @@
   "by": "Cheena 2026-11-06",
   "note": "PASTRIES by Cheena 2026-11-06."
  },
+ "00eb6aa970ced8679b7e85a9b3977d6166151d50990374f41578592cfe58ce4e": {
+  "source": "TOAST | Pastries | Mango Cheesecake",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Mango Cheesecake",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
  "d9b559230e50e89c2b617e905dc855956194e233966395529aa4f2a6bfcfa0cd": {
   "source": "TOAST | Pastries | Mango Pudding",
   "status": "Approved",
@@ -13164,6 +13884,15 @@
   "item": "Mango Pudding",
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
+ },
+ "8e444f0672d5cd2f06da9e90920db5ea2f9aa481b31ee45476fdbd6c4ddd2d8b": {
+  "source": "TOAST | Pastries | Mango cheesecake",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Mango Cheesecake",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
  },
  "27dd3dcd3e5afdac0da1f690b016a0727a90e898f5f90ba95e3bcf11910e8f6d": {
   "source": "TOAST | Pastries | Matcha Strawberry Cheesecake",
@@ -13191,6 +13920,15 @@
   "item": "Oreo Cake",
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
+ },
+ "cfc9e6119b4b2b8dc63c27981089d3cc0527dd6ae9f843a85e192440c3419929": {
+  "source": "TOAST | Pastries | Oreo Cheesecake",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Oreo Cheesecake",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
  },
  "e40b8411916f1c7480ac287803992e28ccc6e7631824c618e226dc5c028336e6": {
   "source": "TOAST | Pastries | Oreo F.C",
@@ -13228,6 +13966,24 @@
   "by": "Cheena 2026-11-06",
   "note": "BASQUE CHEESECAKES by Cheena 2026-11-06."
  },
+ "649c64888324a6017e059b16e44a44473d21f7442476345882d42e011e2b8665": {
+  "source": "TOAST | Pastries | Original Burnt Top Cheesecake",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Original Burnt Top Cheesecake",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "5acb36a6d214255575aa0a285789422af1e4ae3a2064c16d07d7d4904a645eee": {
+  "source": "TOAST | Pastries | Passion Fruit Cheesecake",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Passion Fruit Cheesecake",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
  "19cca501b525c67dd998c9e1ed381f4e4674d509b107966ddb1c064259711a23": {
   "source": "TOAST | Pastries | Red Velvet Cake",
   "status": "Approved",
@@ -13264,6 +14020,15 @@
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
  },
+ "1e03033f94b43db4c1cf42e1f414e59ad063dd949ff4fcb19e9ae34f73939d38": {
+  "source": "TOAST | Pastries | Strawberry Cheesecake",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Strawberry Cheesecake",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
  "41271b6ebfe5b587bed9ae8a6807d2881518d852bfb926376a14ea2a34d8be83": {
   "source": "TOAST | Pastries | Tiramisu Cake",
   "status": "Approved",
@@ -13272,6 +14037,15 @@
   "item": "Tiramisu Cake",
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
+ },
+ "e12c4221b20e167629daf5332519b2fe9d30de444f843bcfe4c06e40165a9535": {
+  "source": "TOAST | Pastries | Whole Burn Top Cheesecake",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Whole Burn Top Cheesecake",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
  },
  "8713386795e3d62371d20996c916e8e87115e02f9e2801221a831410a5623a53": {
   "source": "TOAST | Pastries | dubai Cake",
@@ -17889,6 +18663,24 @@
   "note": "FLUFFY ALL DAY - SANDWICHES by Cheena 2026-11-06; renamed from 'B.L.T Sandwich'.",
   "renamed_from": "B.L.T Sandwich"
  },
+ "cfdade2ca3f00320b1b2d19da08913f903df210b608ddf5a8728a6f102907c4a": {
+  "source": "TOAST | Top 10 Picks | Basque Cheesecake (Half)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Basque Cheesecake (Half)",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "ef9669b7d3eebeee64cf07e8f904202995d38039262234d75eaf3956dd393eaa": {
+  "source": "TOAST | Top 10 Picks | Basque Cheesecake - Slice",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
  "8f051ad9e81b0a6bfd343705c4745157d1563585d5a942e04ee81c043d41db23": {
   "source": "TOAST | Top 10 Picks | Basque Cheesecake Original",
   "status": "Approved",
@@ -17955,6 +18747,15 @@
   "item": "Breakfast Sandwich",
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
+ },
+ "2b33b7569393aad8ce1c56596b93c2af16bd31219d1679d975c356e0d5443f2a": {
+  "source": "TOAST | Top 10 Picks | Cheesecake (Slice)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Cheesecake Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
  },
  "db18be74a0750a2a0bf5d90e8ad7cb868d56d461404c287d37162961d5f239e6": {
   "source": "TOAST | Top 10 Picks | Chicken and Croffle",
@@ -18149,6 +18950,24 @@
   "by": "Cheena 2026-11-06",
   "note": "Approved by Cheena 2026-11-06."
  },
+ "c6303d9e33bcd5edf751dc00f58018ade59d5cd4de33c8202ffb69c76ec7db03": {
+  "source": "TOAST | Top 10 Picks | Original Basque Cheesecake (Slice)",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Original Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
+ "a3c7d9aa4436faf31df3dfda4281762538ab3a76e236e334bfb75be7e35f935f": {
+  "source": "TOAST | Top 10 Picks | Original Basque Cheesecake - Slice",
+  "status": "Approved",
+  "category": "Cheesecakes",
+  "section": "BASQUE CHEESECAKES",
+  "item": "Original Basque Cheesecake - Slice",
+  "by": "Cheena 2026-11-09",
+  "note": "Moved to BASQUE CHEESECAKES by Cheena 2026-11-09."
+ },
  "38773b7314b60d8644840657fedc8fab36a415645bdfd63a544ab93cde016623": {
   "source": "TOAST | Top 10 Picks | Samosa",
   "status": "Approved",
@@ -18304,6 +19123,15 @@
   "item": "Ube Cheesecake",
   "by": "Cheena 2026-11-06",
   "note": "BASQUE CHEESECAKES by Cheena 2026-11-06."
+ },
+ "0a7b66f220a1fe6c1bed782aa085a831b19b677832bbab4d2649be6c983bb359": {
+  "source": "TOAST | Ube Series | Ube Coconut Bliss",
+  "status": "Pending",
+  "category": "",
+  "section": "UNCATEGORIZED",
+  "item": "Ube Coconut Bliss",
+  "by": "Cheena 2026-11-09",
+  "note": "Left in UNCATEGORIZED by Cheena 2026-11-09: could not be placed."
  },
  "f05600b5b49e4d0de2e8022466365011951fa719e68991cf765e66a538902fd4": {
   "source": "TOAST | Ube Series | Ube Coconut Latte",

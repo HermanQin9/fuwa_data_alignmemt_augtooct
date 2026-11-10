@@ -7,8 +7,11 @@ applies last, after every rule. Three ways in:
                New Status columns to fill.
   apply        Read that workbook back.
   from-report  Read a reviewed report the way Cheena marked one on 2026-11-06: a status or a
-               target section typed in PMIXData's Review Status column, and CATEGORY / REMARKS
-               notes typed beside the items on the PMIX sheet.
+               target section typed in PMIXData's Review Status column (and, since 2026-11-09,
+               in the Exceptions sheet's Review Status column), and CATEGORY / REMARKS notes
+               typed beside the items on the PMIX sheet.
+  list-copy    Write a copy of the Menu Items List with the names in menu_list_additions.json
+               added. The original workbook is never changed.
 
 Each run writes a check workbook listing every decision, and anything it could not apply. Then
 rebuild with run_pipeline.py, or pass --rebuild.
@@ -16,6 +19,7 @@ rebuild with run_pipeline.py, or pass --rebuild.
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime as dt
 import difflib
 import json
@@ -49,7 +53,7 @@ def source_label(row) -> str:
 
 
 def sections_list(menu_list_path: Path) -> list[str]:
-    return wf.report_sections(wf.MenuList(wf.read_menu_list(menu_list_path)))
+    return wf.report_sections(wf.MenuList(wf.read_full_menu_list(menu_list_path)))
 
 
 def instruction(remark: object) -> tuple[str, str, str]:
@@ -195,9 +199,38 @@ def read_cell_comments(book_path: Path, sheet: str) -> list[tuple[int, str]]:
     return comments
 
 
+def read_exception_statuses(report: Path) -> dict[str, list[str]]:
+    """Review Status typed on the Exceptions sheet, by Mapping ID (sorted distinct values)."""
+    try:
+        frame = pd.read_excel(report, sheet_name="Exceptions", dtype=object, keep_default_na=False,
+                              usecols=["Mapping ID", "Review Status"])
+    except ValueError:  # an older report has no such sheet or column
+        return {}
+    return frame.groupby("Mapping ID")["Review Status"].agg(
+        lambda s: sorted({wf.tidy(v) for v in s})).to_dict()
+
+
+def drop_unchanged(decisions: dict, check: dict[str, list]) -> dict:
+    """Keep only decisions that differ from the ones on file, so earlier reviews keep their own
+    date and wording when a later report repeats them."""
+    stored = wf.load_review_decisions()
+    changed, same = {}, []
+    for ident, made in decisions.items():
+        before = stored.get(ident)
+        if before and all(before.get(k, "") == made.get(k, "")
+                          for k in ("status", "category", "section", "item")):
+            same.append({"Source": made["source"], "Item": made["item"], "Status": made["status"]})
+            continue
+        if before and before.get("renamed_from") and not made.get("renamed_from"):
+            made["renamed_from"] = before["renamed_from"]
+        changed[ident] = made
+    check["Already on file"] = same
+    return changed
+
+
 def from_report(report: Path, by: str, menu_list_path: Path) -> dict:
     sections = sections_list(menu_list_path)
-    menu_list = wf.MenuList(wf.read_menu_list(menu_list_path))
+    menu_list = wf.MenuList(wf.read_full_menu_list(menu_list_path))
     data = pd.read_excel(report, sheet_name="PMIXData", dtype=object, keep_default_na=False,
                          usecols=["Mapping ID", "Category", wf.LIST_SECTION, "Item", "Review Status"])
     mapping = pd.read_excel(report, sheet_name="Menu Category", dtype=object, keep_default_na=False)
@@ -206,7 +239,7 @@ def from_report(report: Path, by: str, menu_list_path: Path) -> dict:
         status=("Review Status", lambda s: sorted(set(s))), category=("Category", "first"),
         section=(wf.LIST_SECTION, "first"), item=("Item", "first"))
     check = {"Could not apply": [], "Still Pending": [], "General remarks": [], "Inferred": [],
-             "Cell comments": []}
+             "Cell comments": [], "Left as is": []}
     decisions, targets = {}, {}
     for ident, row in per_entry.iterrows():
         entry = {**entries[ident], "Category": row["category"]}
@@ -232,6 +265,35 @@ def from_report(report: Path, by: str, menu_list_path: Path) -> dict:
         decisions[ident] = decision(entry, by, section, row["item"],
                                     "Pending" if section == wf.UNSORTED_SECTION else "Approved",
                                     f"Moved to {section} by {by}.")
+
+    # The Exceptions sheet holds entries the pivot does not: a section typed there places the entry;
+    # UNCATEGORIZED means the reviewer could not place it, so it stays an unresolved exception.
+    exception_ids = read_exception_statuses(report)
+    for ident, statuses in exception_ids.items():
+        entry = entries[ident]
+        if len(statuses) > 1:
+            check["Could not apply"].append({"Source": source_label(entry),
+                                             "Problem": f"Exceptions rows disagree: {statuses}"})
+            continue
+        status = statuses[0]
+        if status in ("", "Pending"):
+            continue
+        if wf.text(entry["Review Status"]) == "Excluded":
+            check["Left as is"].append({"Source": source_label(entry), "Why":
+                                        f"Excluded on purpose; {status!r} typed on Exceptions not applied. "
+                                        + wf.tidy(entry["Review Notes"])})
+            continue
+        section = None if status == "Approved" else wf.canonical_section(status, sections)
+        if section is None:
+            check["Could not apply"].append({"Source": source_label(entry), "Problem":
+                                             "Approved needs a section" if status == "Approved"
+                                             else f"Unknown section {status!r}"})
+            continue
+        unplaced = section == wf.UNSORTED_SECTION
+        decisions[ident] = decision(entry, by, section, wf.text(entry["Item"]),
+                                    "Pending" if unplaced else "Approved",
+                                    f"Left in {section} by {by}: could not be placed." if unplaced
+                                    else f"Moved to {section} by {by}.")
 
     notes, general = read_pmix_notes(report, set(per_entry["section"]))
     check["General remarks"] = [{"Remark": g} for g in general]
@@ -338,8 +400,54 @@ def from_report(report: Path, by: str, menu_list_path: Path) -> dict:
         if ident not in decisions:
             check["Still Pending"].append({"Source": source_label(entries[ident]),
                                            "Section": row["section"], "Item": row["item"]})
+    check["Still unplaced (Exceptions)"] = [
+        {"Source": source_label(entries[i]), "Item": wf.text(entries[i]["Item"]),
+         "Status": wf.text(entries[i]["Review Status"])}
+        for i in exception_ids if decisions.get(i, {}).get("status", "Pending") != "Approved"
+        and wf.text(entries[i]["Review Status"]) != "Excluded"]
+    decisions = drop_unchanged(decisions, check)
     save(decisions, check, "report", menu_list, set(per_entry["item"]))
     return decisions
+
+
+def list_copy(menu_list_path: Path, output: Path) -> None:
+    """Copy the Menu Items List with menu_list_additions.json added at the end of each section."""
+    if output.exists():
+        raise SystemExit(f"Refusing to overwrite {output}")
+    additions = wf.load_menu_additions()
+    book = openpyxl.load_workbook(menu_list_path)
+    sheet = book[wf.MENU_LIST_SHEET]
+    section, last, have = "", {}, {}
+    for (cell,) in sheet.iter_rows(min_col=1, max_col=1):
+        name = wf.tidy(cell.value)
+        if not name:
+            continue
+        if cell.font.b:
+            section = name
+            have.setdefault(section, set())
+        else:
+            have[section].add(wf.normalized(name))
+        last[section] = cell.row
+    fresh = {}
+    for target, names in additions.items():
+        if target not in last:
+            raise SystemExit(f"menu_list_additions.json: section {target!r} is not on the list")
+        fresh[target] = [n for n in names if wf.normalized(n) not in have[target]]
+    # Bottom sections first, so the row numbers of the ones above stay valid.
+    for target in sorted(fresh, key=lambda s: -last[s]):
+        names, after = fresh[target], last[target]
+        if not names:
+            continue
+        sheet.insert_rows(after + 1, amount=len(names))
+        model = sheet.cell(after, 1)
+        for offset, name in enumerate(names, 1):
+            cell = sheet.cell(after + offset, 1, name)
+            cell._style = copy.copy(model._style)
+            if model.font.b:  # a section with no names yet: the new name is not a heading
+                cell.font = openpyxl.styles.Font(name=model.font.name, sz=model.font.sz, b=False)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    book.save(output)
+    print(json.dumps({"added": sum(len(v) for v in fresh.values()), "written_to": str(output)}, indent=2))
 
 
 def template(mapping_path: Path, output: Path, menu_list_path: Path) -> None:
@@ -370,7 +478,7 @@ def template(mapping_path: Path, output: Path, menu_list_path: Path) -> None:
 
 def apply(path: Path, by: str, menu_list_path: Path) -> dict:
     sections = sections_list(menu_list_path)
-    menu_list = wf.MenuList(wf.read_menu_list(menu_list_path))
+    menu_list = wf.MenuList(wf.read_full_menu_list(menu_list_path))
     sheet = pd.read_excel(path, sheet_name="Recategorize", dtype=object, keep_default_na=False)
     check = {"Could not apply": []}
     decisions = {}
@@ -411,6 +519,8 @@ def main() -> int:
     make = commands.add_parser("template", help="Write a fill-in workbook from a mapping")
     make.add_argument("--mapping", type=Path, default=RESULT / "USA PMix - Menu Mapping.xlsx")
     make.add_argument("--output", type=Path, default=RESULT / "Recategorize Template.xlsx")
+    copy_list = commands.add_parser("list-copy", help="Write the Menu Items List with the approved additions")
+    copy_list.add_argument("--output", type=Path, default=RESULT / "Menu Items List - with additions.xlsx")
     for name, help_text in (("apply", "Read a filled-in template"),
                             ("from-report", "Read a reviewed report (PMIXData status and PMIX notes)")):
         command = commands.add_parser(name, help=help_text)
@@ -419,6 +529,9 @@ def main() -> int:
     args = parser.parse_args()
     if args.command == "template":
         template(args.mapping, args.output, args.menu_list)
+        return 0
+    if args.command == "list-copy":
+        list_copy(args.menu_list, args.output)
         return 0
     if args.command == "apply":
         apply(args.workbook, args.by, args.menu_list)

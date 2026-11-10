@@ -8,7 +8,7 @@ the mapping.
 | `USA PMix - PMIX Report DRAFT.xlsx` | The interactive report, rows by Category > Menu > Menu group > Item | No |
 | `USA PMix - Menu List Report DRAFT.xlsx` | The same report with rows by Menu Items List section > Item | No |
 | `USA PMix - Menu Mapping.xlsx` | The editable category mapping behind both reports | No |
-| `USA PMix - Result Check.xlsx` | Check results, changes from the first draft, review findings and open questions | No |
+| `Menu Items List - with additions.xlsx` | Cheena's Menu Items List plus the 16 names she approved on 2026-11-09, for her to finalize. `../Menu Items List.xlsx` itself is unchanged | No |
 | `VALIDATION_RESULTS.json` | Overall totals and pass/fail results for the PMIX report | Yes |
 | `VALIDATION_RESULTS - Menu List.json` | The same for the Menu List report | Yes |
 | `PIPELINE_RUN.json`, `PIPELINE_RUN.log` | What the last `run_pipeline.py` run used and did (after the first pipeline run) | No |
@@ -22,8 +22,8 @@ same totals; only the row grouping differs.
 In the mapping workbook, `Menu List Status` and `Menu List Match` show which items are on Cheena's
 `Menu Items List.xlsx`. Filter `Menu List Status` for `Not in Menu Items List` to see the items
 that still need a clean name. Item names were cleaned against that list. Cheena's review of
-2026-11-06 then set sections, names and approvals; `Menu List Section` shows where each item is
-reported, and Evidence `Reviewed by Cheena 2026-11-06` marks her decisions.
+2026-11-06 and 2026-11-09 then set sections, names and approvals; `Menu List Section` shows where
+each item is reported, and Evidence `Reviewed by Cheena <date>` marks her decisions.
 
 The repository is public, so the workbooks stay on the local machine. They hold store sales data
 and are ignored by Git.

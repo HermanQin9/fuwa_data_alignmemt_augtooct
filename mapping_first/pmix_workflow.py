@@ -34,6 +34,8 @@ NAME_OVERRIDES_FILE = Path(__file__).resolve().parent / "menu_name_overrides.jso
 REVIEW_FILE = Path(__file__).resolve().parent / "review_decisions.json"
 REVIEW_EVIDENCE = "Reviewed by"
 MENU_LIST_FILE = ROOT / "Menu Items List.xlsx"
+# Names a reviewer approved adding to the list; the original workbook stays untouched.
+MENU_ADDITIONS_FILE = Path(__file__).resolve().parent / "menu_list_additions.json"
 MENU_LIST_SHEET = "USA Menu List"
 # Cheena's own pile of names she has not placed or cleaned yet; never used as a clean spelling.
 UNSORTED_SECTION = "UNCATEGORIZED"
@@ -137,6 +139,36 @@ def read_menu_list(path: Path) -> list[tuple[str, str]]:
     if not entries:
         raise ValueError(f"No menu names found in {path}")
     return entries
+
+
+def load_menu_additions() -> dict[str, list[str]]:
+    """Names added to the Menu Items List by a reviewer: {section: [names]}. No sales figures."""
+    if not MENU_ADDITIONS_FILE.exists():
+        return {}
+    with MENU_ADDITIONS_FILE.open(encoding="utf-8") as handle:
+        return json.load(handle)["sections"]
+
+
+def add_menu_names(entries: list[tuple[str, str]], additions: dict[str, list[str]]
+                   ) -> list[tuple[str, str]]:
+    """Insert each added name at the end of its section, unless that section already has it."""
+    result = list(entries)
+    for section, names in additions.items():
+        last = max((i for i, (s, _) in enumerate(result) if s == section), default=None)
+        if last is None:
+            raise ValueError(f"menu_list_additions.json: section {section!r} is not on the Menu Items List")
+        have = {normalized(n) for s, n in result if s == section}
+        fresh = [(section, tidy(n)) for n in names if normalized(n) not in have]
+        result[last + 1:last + 1] = fresh
+    return result
+
+
+def read_full_menu_list(path: Path) -> list[tuple[str, str]]:
+    """The Menu Items List plus the names reviewers added in menu_list_additions.json.
+
+    The workbook itself is never changed; the additions are applied each time it is read.
+    """
+    return add_menu_names(read_menu_list(path), load_menu_additions())
 
 
 class MenuList:
@@ -717,7 +749,7 @@ def make_mapping(source_path: Path, output: Path, menu_list_path: Path = MENU_LI
     _, source = load_sources(source_path)
     # A new POS export may have no Menu Category outline, so the reference can be another file.
     reference = read_reference(reference_path or source_path)
-    menu_entries = read_menu_list(menu_list_path)
+    menu_entries = read_full_menu_list(menu_list_path)
     decisions = load_review_decisions()
     mapping = propose_mapping(source, reference, MenuList(menu_entries), load_name_overrides(),
                               decisions)

@@ -6,18 +6,21 @@ Two stages, so that a category decision is made once and reused:
    names cleaned against Cheena's Menu Items List.
 2. `report` reads only that saved master and builds a native, filterable Excel PMIX report.
 
-Finished output goes in [`../Result/`](../Result/). This folder holds code, docs and the three
-decision files (`mapping_overrides.json`, `menu_name_overrides.json`, `review_decisions.json`). Earlier outputs and retired
-files are kept in `../versions/`.
+Finished output goes in [`../Result/`](../Result/). This folder holds code, docs and the four
+decision files (`mapping_overrides.json`, `menu_name_overrides.json`, `review_decisions.json`,
+`menu_list_additions.json`). Earlier outputs and retired files are kept in `../versions/`.
 
 ## Current status
 
 - The report is a **draft**. Mapping entries stay `Pending` until the business marks them
   `Approved`, and a final build refuses Pending entries.
 - Categories and tests reflect the business decisions of 2026-10-31, Cheena's answers of
-  2026-11-05 and her review of 2026-11-06 (`review_decisions.json`): 2,004 entries Approved,
-  with her sections and item names. The rest stay Pending, mostly Basque cheesecakes she has not
-  marked yet.
+  2026-11-05 and her reviews of 2026-11-06 and 2026-11-09 (`review_decisions.json`): 2,062
+  entries Approved, with her sections and item names. On 2026-11-09 she placed the Basque
+  cheesecakes, Bellini and Cream, approved T-Shirt, confirmed `Crème Brulee Pancakes` and moved
+  Raspberry Caramelized Banana Pancakes (a `FREE ICE CREAM` item) to Promotions. 39 entries
+  stay Pending and unplaced in `Exceptions` because she could not place them, and Custom Amount
+  stays Excluded. Nothing was forced into a category.
 - Workbooks are not in Git, because this repository is public and they hold store sales data.
 
 ## Categories
@@ -84,8 +87,11 @@ section, the Category that goes with it, the item name, who decided and a note. 
   (for example a Fluffy All Day item under FLUFFY ALL DAY - SANDWICHES), otherwise it takes the
   section's usual one. `SECTION_CATEGORIES` in `pmix_workflow.py` holds the table, taken from
   Cheena's approvals; COMBOS is Combos, ICE CREAM and SMALL BITES are Add-Ons.
-- `from-report` reads two things from a reviewed report: PMIXData's `Review Status` column, where
-  each item is `Approved`, `Pending` or a section name to move it to; and `CATEGORY` / `REMARKS`
+- `from-report` reads three things from a reviewed report: PMIXData's `Review Status` column, where
+  each item is `Approved`, `Pending` or a section name to move it to; the same column on the
+  `Exceptions` sheet (2026-11-09), where a section places an item the pivot does not hold,
+  `Uncategorized` means the reviewer could not place it (it stays a Pending exception, with the
+  review recorded), and an `Excluded` entry such as Custom Amount is left Excluded; and `CATEGORY` / `REMARKS`
   columns typed beside the items on the PMIX sheet. Remarks understood: `Rename to X`, `Remove
   "text" in item name` (spacing-insensitive), `Remove # character`, a bare name, and `..., if item
   is under <section> Category`. A rename that lands on another remarked name follows it, and a
@@ -93,7 +99,9 @@ section, the Category that goes with it, the item name, who decided and a note. 
 - Every run writes `Result/Recategorize Check - <kind> <time>.xlsx`: every decision, anything it
   could not apply, renamed items whose new name is not on the list, and entries still Pending.
 - A decision replaces an earlier one for the same entry. Delete an entry's block from
-  `review_decisions.json` to undo it.
+  `review_decisions.json` to undo it. `from-report` records only what differs from the decisions
+  already on file, so earlier reviews keep their own date and wording when a later report repeats
+  them; the check workbook's `Already on file` sheet lists the ones it left alone.
 
 ## Cleaning item names with the Menu Items List
 
@@ -123,6 +131,18 @@ Gyoza`, `Deep Fried Pork Gyoza` and `Deep Fried Edamame Gyoza` (without their po
 renamed to their list names. An entry is reversible by deleting its block. Each line holds the Mapping ID, the source name, the
 list name and the reason, and no sales figures. A rebuild fails loudly if a listed override name
 has since been removed from the list.
+
+`menu_list_additions.json` holds names Cheena approved adding to the list (2026-11-09: 16 names
+that her review had introduced, such as `Eggs Benedict Pancake (Ham and Cheese)` and `Apple
+Caramel Pancakes`), by section. `Menu Items List.xlsx` is not modified: the names are added at the
+end of their section each time the list is read, so the mapping, its `Menu Items List` sheet and
+every report see them. A name already on the list is skipped, so the file can stay if the workbook
+is later updated by hand; a section that is not on the list stops the build. To give Cheena the
+list with the names in it:
+
+```powershell
+& 'D:\Anaconda\python.exe' mapping_first\recategorize.py list-copy --output 'Result\Menu Items List - with additions.xlsx'
+```
 
 The list's own spellings are copied as they are, including its typos (for example `Sapporro`,
 `Franch Sparkling Wine`, `Creme Burlee Sauce`). Fix the typo in `Menu Items List.xlsx` and
@@ -263,6 +283,28 @@ For an approved report, drop `--draft --all-dates` and give `--start` and `--end
 - Excel treats labels that differ only by case as one pivot item, for example `Oreo Frappe` and
   `OREO Frappe`. Totals are unaffected; one spelling is displayed.
 - No sales or revenue figures are invented, because those inputs are absent.
+
+## Adding sales amounts (Gross Sales, Discount, Net Sales)
+
+Cheena asked on 2026-11-09 whether extra columns in PMIXData would cause a problem.
+
+- **The PivotTable can take them.** `PMIXData` is an Excel Table and the PivotTable's source is
+  the table name, so a column inside the table becomes a field after Refresh. Existing rows,
+  slicers and totals do not change. `validate_prepared.py` reads PMIXData by column name, so an
+  extra column does not break it either.
+- **The data has no amounts.** `USA PMix.xlsx` holds only Qty in `TOAST` and `SQUARE` (eight
+  columns each). The amounts must come from a new POS export with one row per item line, and
+  the workflow never invents them.
+- **Do not type them into the delivered file.** PMIXData is rewritten from the source on every
+  build, so a hand-added column disappears at the next rebuild. To keep them, the build has to
+  carry the columns: read them in `load_sources`, add them to the report's field list, add the
+  value fields to both PivotTables, and add checks that `Net Sales = Gross Sales - Discount`
+  and that the pivot totals match the source totals.
+- **Questions to settle first.** Whether returns and voids carry negative amounts, whether a
+  discount applies to the item line or to the whole check (a check-level discount has to be
+  split across items to be summed by item), and whether `Qty (%)` should stay as the share of
+  quantity or become a share of Net Sales.
+- Amounts are store sales data, so they stay out of Git like the other workbooks.
 
 ## Tests and checks
 

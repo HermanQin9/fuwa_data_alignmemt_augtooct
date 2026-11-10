@@ -1,8 +1,10 @@
 import datetime as dt
+import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import openpyxl
 import openpyxl.styles
@@ -13,6 +15,8 @@ import pmix_workflow as workflow
 
 # Tests build small workbooks from real item names; the live reviewer decisions must not apply.
 workflow.REVIEW_FILE = Path(__file__).resolve().parent / "no-review-decisions-in-tests.json"
+# Likewise the names reviewers added to the real Menu Items List.
+workflow.MENU_ADDITIONS_FILE = Path(__file__).resolve().parent / "no-menu-additions-in-tests.json"
 
 
 class MappingWorkflowTests(unittest.TestCase):
@@ -623,6 +627,77 @@ class ReviewDecisionTests(unittest.TestCase):
         menu = workflow.MenuList([("X", "Mocha Espresso"), ("X", "Basque Cheesecake - Slice")])
         self.assertEqual(rc.snap("Mocha Expresso", menu), "Mocha Espresso")
         self.assertEqual(rc.snap("Oreo Basque Cheesecake - Slice", menu), "Oreo Basque Cheesecake - Slice")
+
+    def test_menu_additions_go_at_the_end_of_their_section(self):
+        entries = [("PANCAKES", "Signature Pancakes"), ("PANCAKES", "Ube Pancakes"),
+                   ("DRINKS - TEA", "Matcha")]
+        added = workflow.add_menu_names(entries, {"PANCAKES": ["Nutella Pancakes", "ube  pancakes"]})
+        self.assertEqual(added, [("PANCAKES", "Signature Pancakes"), ("PANCAKES", "Ube Pancakes"),
+                                 ("PANCAKES", "Nutella Pancakes"), ("DRINKS - TEA", "Matcha")])
+        self.assertEqual(entries[0], ("PANCAKES", "Signature Pancakes"))  # input is not changed
+        with self.assertRaises(ValueError):
+            workflow.add_menu_names(entries, {"SALADS": ["Caesar"]})
+
+    def test_added_name_is_listed_and_keeps_its_section(self):
+        entries = workflow.add_menu_names([("PANCAKES", "Signature Pancakes")],
+                                          {"PANCAKES": ["Nutella Pancakes"]})
+        menu = workflow.MenuList(entries)
+        name, status, _ = workflow.check_menu_name(menu, {}, "id", "nutella pancakes", "Nutella Pancakes")
+        self.assertEqual((name, status), ("Nutella Pancakes", workflow.LISTED_CLEANED))
+        self.assertEqual(workflow.list_section(menu, "Nutella Pancakes", "Pancakes"), "PANCAKES")
+
+    def test_list_copy_adds_names_and_leaves_the_original_alone(self):
+        import recategorize as rc
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            source = MappingWorkflowTests("test_listed_names_take_the_list_spelling").small_menu_list(directory)
+            additions = Path(directory) / "additions.json"
+            additions.write_text(json.dumps({"sections": {"SANDWICHES": ["Tuna Sandwich", "BLT sandwich"],
+                                                          "DRINKS - COFFEE": ["Mocha"]}}), encoding="utf-8")
+            before = source.read_bytes()
+            output = Path(directory) / "copy.xlsx"
+            with mock.patch.object(workflow, "MENU_ADDITIONS_FILE", additions):
+                rc.list_copy(source, output)
+            self.assertEqual(source.read_bytes(), before)
+            self.assertEqual([e for e in workflow.read_menu_list(output) if e[0] != workflow.UNSORTED_SECTION],
+                             [("SANDWICHES", "BLT Sandwich"), ("SANDWICHES", "Ham and Cheese Sandwich"),
+                              ("SANDWICHES", "Tuna Sandwich"), ("DRINKS - COFFEE", "Latte"),
+                              ("DRINKS - COFFEE", "Crème Brulee"),
+                              ("DRINKS - COFFEE", "Mocha")])  # "BLT sandwich" was already listed
+            self.assertFalse(openpyxl.load_workbook(output)[workflow.MENU_LIST_SHEET]["A5"].font.b)
+
+    def test_exception_statuses_are_read_by_mapping_id(self):
+        import recategorize as rc
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            path = Path(directory) / "report.xlsx"
+            pd.DataFrame({"Mapping ID": ["a", "a", "b", "c"],
+                          "Review Status": ["Add-Ons", " Add-Ons", "Uncategorized", "Add-Ons"]}
+                         ).to_excel(path, sheet_name="Exceptions", index=False)
+            self.assertEqual(rc.read_exception_statuses(path),
+                             {"a": ["Add-Ons"], "b": ["Uncategorized"], "c": ["Add-Ons"]})
+            pd.DataFrame({"x": [1]}).to_excel(path, sheet_name="Other", index=False)
+            self.assertEqual(rc.read_exception_statuses(path), {})  # no Exceptions sheet
+
+    def test_unplaced_exception_stays_without_a_category(self):
+        import recategorize as rc
+        entry = {"POS Sheet": "TOAST", "Source Group": "", "Source Item": "Oat", "Category": ""}
+        made = rc.decision(entry, "x", workflow.UNSORTED_SECTION, "Oat", "Pending", "note")
+        self.assertEqual((made["category"], made["status"]), ("", "Pending"))
+        placed = rc.decision(entry, "x", "ADD-ONS", "Oat", "Approved", "note")
+        self.assertEqual(placed["category"], "Add-Ons")
+
+    def test_decisions_already_on_file_are_not_recorded_again(self):
+        import recategorize as rc
+        old = {"source": "s", "status": "Approved", "category": "Pancakes", "section": "PANCAKES",
+               "item": "Ube Pancakes", "by": "Cheena 2026-11-06", "note": "n", "renamed_from": "Ube"}
+        same = {**old, "by": "Cheena 2026-11-09", "note": "again"}
+        moved = {**old, "category": "Promotions", "section": "PROMOTIONS", "by": "Cheena 2026-11-09"}
+        del moved["renamed_from"]
+        with mock.patch.object(workflow, "load_review_decisions", return_value={"a": old, "b": old}):
+            check = {}
+            kept = rc.drop_unchanged({"a": same, "b": moved, "c": {**old, "source": "t"}}, check)
+        self.assertEqual(sorted(kept), ["b", "c"])
+        self.assertEqual(kept["b"]["renamed_from"], "Ube")  # an earlier rename is not forgotten
+        self.assertEqual(len(check["Already on file"]), 1)
 
 
 if __name__ == "__main__":
