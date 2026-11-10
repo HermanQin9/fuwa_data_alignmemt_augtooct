@@ -162,7 +162,8 @@ entries are `Not in Menu Items List`.
 - `USA PMix - Menu Mapping.xlsx`: `Menu Category` is the editable master, with one row for each
   POS sheet, source group and source item. `Allowed Categories` feeds the Category dropdown, and
   `Menu Items List` is a copy of the list the names were checked against.
-- `USA PMix - PMIX Report DRAFT.xlsx`:
+- `USA PMix - PMIX Report DRAFT.xlsx` (the Category layout; Cheena chose the Menu List layout
+  below on 2026-11-10, so the pipeline builds only that one unless asked):
   - `PMIX` is a native PivotTable. Rows expand as Category > Menu > Menu group > Item, largest
     first. Columns show `Qty (#)` and `Qty (%)` by year-aware quarter.
   - Category, Location, Month and Week starting slicers filter the table. Nothing selected in a
@@ -191,8 +192,9 @@ entries are `Not in Menu Items List`.
 
 ## Running on new data
 
-`run_pipeline.py` does the whole run in one command: unit tests, the mapping, both reports,
-`validate_prepared.py` and `verify_result.py` on each report.
+`run_pipeline.py` does the whole run in one command: unit tests, the mapping, the report,
+`validate_prepared.py` and `verify_result.py`. It builds the Menu List report, which Cheena chose on
+2026-11-10. Add `--layout category` for the older PMIX layout, or `--layout both`.
 
 ```powershell
 & 'D:\Anaconda\python.exe' mapping_first\run_pipeline.py `

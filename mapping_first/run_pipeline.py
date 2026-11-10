@@ -1,4 +1,4 @@
-"""Run the whole PMIX pipeline on a data export: tests, mapping, both reports and every check.
+"""Run the whole PMIX pipeline on a data export: tests, mapping, the report and every check.
 
 Everything is built in Result/_building/<run> first. Only when every step passes are the
 current files in Result/ moved to versions/<date>-before-<label>/ and the new ones put in their
@@ -123,6 +123,9 @@ def main() -> int:
                         help="Name for the versions/ folder the current Result files move to")
     parser.add_argument("--start", help="Inclusive date YYYY-MM-DD (default: all dates)")
     parser.add_argument("--end", help="Inclusive date YYYY-MM-DD")
+    parser.add_argument("--layout", choices=["menu-list", "category", "both"], default="menu-list",
+                        help="Report to build. Default menu-list, the one Cheena chose on "
+                             "2026-11-10; category is the older PMIX layout")
     parser.add_argument("--final", action="store_true",
                         help="Approved report: refuses Pending entries in the window")
     parser.add_argument("--dry-run", action="store_true",
@@ -143,7 +146,8 @@ def main() -> int:
     log = stage / "PIPELINE_RUN.log"
     suffix = "" if args.final else " DRAFT"
     mapping = stage / MAPPING_NAME
-    reports = {layout: stage / f"{name}{suffix}.xlsx" for layout, name in REPORTS.items()}
+    layouts = list(REPORTS) if args.layout == "both" else [args.layout]
+    reports = {layout: stage / f"{REPORTS[layout]}{suffix}.xlsx" for layout in layouts}
     window = ["--start", args.start, "--end", args.end] if args.start else ["--all-dates"]
     mode = [] if args.final else ["--draft"]
     steps: list = []
@@ -182,7 +186,7 @@ def main() -> int:
 
     summary["overall"] = "PASS"
     (stage / RUN_SUMMARY).write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
-    staged = [mapping, *reports.values(), *(stage / n for n in JSON_NAME.values()),
+    staged = [mapping, *reports.values(), *(stage / JSON_NAME[layout] for layout in layouts),
               stage / RUN_SUMMARY, log]
     print("\nAll steps passed.")
     print(json.dumps(summary.get("mapping", {}), indent=2))
