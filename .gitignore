@@ -20,4 +20,5 @@ __pycache__/
 # Pipeline scratch and per-run logs (run_pipeline.py)
 Result/_building/
 Result/PIPELINE_RUN.json
+versions/*/PIPELINE_RUN.json
 *.log
