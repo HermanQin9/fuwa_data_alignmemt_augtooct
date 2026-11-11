@@ -42,3 +42,9 @@ To run everything on new data, or rebuild or re-check these files, see [`../mapp
 
 The `Exceptions` sheet holds the entries kept out of the pivot: Custom Amount, and the 39 items
 Cheena could not place, which stay under UNCATEGORIZED (status Excluded, with her reason).
+
+Store data ends (Cheena, 2026-11-10): Miami and Carrollton, the Square stores, closed in mid-October,
+so their last sales are Oct 4 and Oct 11. Tucker moved from Square to Toast; its Square data ends
+Aug 30 and its Toast data starts Aug 28, and Square can no longer be reached for Tucker. Sales on
+Aug 28-30 appear in both systems at different times and items, so nothing is counted twice. Aug 31
+has no Tucker rows in either system.
