@@ -230,6 +230,32 @@ The `Changes` sheet in the mapping lists what needs a look: `New item` (not in t
 mapping), `Reviewed decision kept` (the rules now disagree with an approved row; the approval
 wins), and `Pending entry changed` (with the old values, so nothing is lost silently).
 
+## Windows app for Cheena
+
+`pmix_app.py` is a small window around `run_pipeline.py`: pick the Raw data file and a start and end
+date (filled from the file), press Run. `build_app.py` packages it with PyInstaller into
+`dist/PMIX App/` (the folder is ignored by Git, because the saved mapping holds store figures):
+
+```powershell
+# in a clean virtual environment: pandas 1.5.3, openpyxl, XlsxWriter, pywin32, pyinstaller<6.10
+python mapping_firstuild_app.py
+```
+
+- The folder holds the `.exe`, `Menu Items List.xlsx`, `Menu Category reference.xlsx` (only the
+  outline of `USA PMix.xlsx`), `decisions\` (the four JSON files), `Result\` (the current mapping,
+  so Approved decisions carry over) and `README.txt` (`APP_GUIDE.txt`, the instructions for users).
+  Decision changes need a new build: the files are copied in at build time.
+- It runs `run_pipeline.py --auto --skip-tests`: final report when the new mapping has no Pending
+  entries, otherwise a DRAFT and a message with the number of new items. Every check still runs
+  (about 15-20 minutes for a quarter), so Excel for Windows is required.
+- Input format, confirmed by Cheena on 2026-11-11: sheets `TOAST` and `SQUARE`, the same columns as
+  `USA PMix.xlsx`, plus `Gross Sales`, `Discount`, `Net Sales` and `Tax` (blank) right after `Qty`.
+  `Sent Date` is date and time and `Sent Date - Copy` is its time part. SQUARE may have only the
+  header row. The columns are read by name, and the blank ones are kept in the report's data sheets.
+- `PMIX Report Builder.exe --headless <raw data> <start> <end>` runs without a window and writes
+  `headless.log` next to the `.exe`; use it to test a build. `PMIX_INPROCESS=1` makes
+  `run_pipeline.py` run its steps in-process from source, the way the `.exe` does.
+
 ## Commands
 
 Run from the project root in PowerShell with the Anaconda interpreter, which has pandas,

@@ -1,0 +1,39 @@
+PMIX Menu List Report Builder
+=============================
+
+Needs: Windows with Microsoft Excel installed. The report is built and checked in Excel.
+Keep everything in this one folder. Do not move or rename the files inside it.
+
+What is in the folder
+  PMIX Report Builder.exe          the app (double-click to start)
+  Menu Items List.xlsx             the menu list the item names are cleaned against
+  Menu Category reference.xlsx     the category outline
+  decisions\                       the saved decisions (names, sections, approvals)
+  Result\                          the reports and the mapping, after a run
+  versions\                        the earlier Result files; created by the first run
+
+How to run
+  1. Save the new Raw data file in this folder (or choose it with Browse).
+     It needs two sheets, TOAST and SQUARE, in the same columns as before, with
+     Gross Sales, Discount, Net Sales and Tax (blank) right after Qty. The SQUARE sheet may
+     have only the header row.
+  2. Double-click PMIX Report Builder.exe. The first start takes about half a minute.
+  3. The start and end dates are filled from the file. Change them if you want a shorter period.
+  4. Press Run and leave the window open. A run takes about 15-20 minutes.
+     Close every workbook that is open from the Result folder before you press Run.
+  5. When it says "All checks passed", press Open Result folder.
+       USA PMix - Menu List Report.xlsx    the report
+       USA PMix - Menu Mapping.xlsx        the category mapping behind it
+
+New items
+  If the file has items that have no decision yet, the app builds a report marked DRAFT and tells
+  you how many items are new. Open Result\USA PMix - Menu Mapping.xlsx, sheet Menu Category, and
+  filter Review Status for Pending. Fill in the category and set Review Status to Approved for
+  each item you agree with, save, close the file, and run again. The report is final when no item
+  is Pending.
+
+If a run fails
+  The Result folder is not changed. Copy the text from the window and send it to Herman.
+
+Every run moves the files that were in Result to versions\<date>-before-run-<date>\ first, so
+nothing is overwritten.

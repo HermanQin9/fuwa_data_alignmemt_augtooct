@@ -12,16 +12,27 @@ its Approved and Excluded decisions to the new mapping. See README.md, "Running 
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as dt
+import importlib
+import io
 import json
+import os
 import shutil
 import subprocess
 import sys
 import time
+import traceback
 from pathlib import Path
 
+# The packaged Windows app (pmix_app.py) runs from one folder: the .exe, the reference workbooks,
+# decisions/, Result/ and versions/ all sit together, and every step runs inside the .exe.
+FROZEN = getattr(sys, "frozen", False)
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent
+ROOT = Path(sys.executable).resolve().parent if FROZEN else HERE.parent
+# Steps run in this process when packaged (there is no separate Python to start); set
+# PMIX_INPROCESS=1 to try that path from source.
+INPROCESS = FROZEN or bool(os.environ.get("PMIX_INPROCESS"))
 RESULT = ROOT / "Result"
 VERSIONS = ROOT / "versions"
 STAGING = RESULT / "_building"
@@ -36,23 +47,60 @@ class StepFailed(RuntimeError):
     pass
 
 
+def call_in_process(script: Path, args: list) -> tuple[int, str, str]:
+    """Run a step's main() here, with its own argv and its output captured."""
+    out, err = io.StringIO(), io.StringIO()
+    old_argv, code = sys.argv, 0
+    sys.argv = [str(script), *map(str, args)]
+    try:
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            try:
+                sys.path.insert(0, str(HERE))
+                importlib.import_module(Path(script).stem).main()
+            except SystemExit as stop:
+                code = stop.code if isinstance(stop.code, int) else (0 if stop.code is None else 1)
+                if stop.code and not isinstance(stop.code, int):
+                    print(stop.code, file=err)
+            except Exception:
+                traceback.print_exc()
+                code = 1
+    finally:
+        sys.argv = old_argv
+    return code, out.getvalue(), err.getvalue()
+
+
 def run_step(name: str, args: list, log: Path, steps: list) -> str:
     """Run one Python step, log its output, and stop the pipeline if it fails."""
     print(f"=== {name}", flush=True)
     started = time.time()
-    done = subprocess.run([sys.executable, *map(str, args)], cwd=ROOT, capture_output=True,
-                          text=True, encoding="utf-8", errors="replace")
-    output = done.stdout + done.stderr
+    if INPROCESS and Path(args[0]).stem != "test_pmix_workflow":
+        code, stdout, stderr = call_in_process(Path(args[0]), args[1:])
+    else:
+        done = subprocess.run([sys.executable, *map(str, args)], cwd=ROOT, capture_output=True,
+                              text=True, encoding="utf-8", errors="replace")
+        code, stdout, stderr = done.returncode, done.stdout, done.stderr
+    output = stdout + stderr
     with log.open("a", encoding="utf-8") as handle:
         handle.write(f"=== {name}\n{output}\n")
     seconds = round(time.time() - started)
-    steps.append({"step": name, "result": "PASS" if done.returncode == 0 else "FAIL",
-                  "seconds": seconds})
-    if done.returncode != 0:
+    steps.append({"step": name, "result": "PASS" if code == 0 else "FAIL", "seconds": seconds})
+    if code != 0:
         print(output[-3000:], flush=True)
-        raise StepFailed(f"{name} failed (exit {done.returncode}); full output in {log}")
+        raise StepFailed(f"{name} failed (exit {code}); full output in {log}")
     print(f"    PASS in {seconds}s", flush=True)
-    return done.stdout
+    return stdout
+
+
+def pending_entries(mapping: Path) -> int:
+    """How many mapping entries are still Pending (the new items that need a decision)."""
+    import openpyxl
+    book = openpyxl.load_workbook(mapping, read_only=True, data_only=True)
+    try:
+        rows = book["Menu Category"].iter_rows(values_only=True)
+        column = list(next(rows)).index("Review Status")
+        return sum(1 for row in rows if row[column] == "Pending")
+    finally:
+        book.close()
 
 
 def last_json(output: str) -> dict:
@@ -72,8 +120,10 @@ def preflight(args) -> None:
     if args.previous is not None and not args.previous.exists():
         raise SystemExit(f"Previous mapping not found: {args.previous}. "
                          "Use --no-previous only for a first run with nothing reviewed.")
-    if args.final and not (args.start and args.end):
-        raise SystemExit("--final needs --start and --end")
+    if (args.final or args.auto) and not (args.start and args.end):
+        raise SystemExit("--final and --auto need --start and --end")
+    if args.final and args.auto:
+        raise SystemExit("Use --final or --auto, not both")
     if bool(args.start) != bool(args.end):
         raise SystemExit("Give both --start and --end, or neither")
 
@@ -128,6 +178,11 @@ def main() -> int:
                              "2026-11-10; category is the older PMIX layout")
     parser.add_argument("--final", action="store_true",
                         help="Approved report: refuses Pending entries in the window")
+    parser.add_argument("--auto", action="store_true",
+                        help="Final report when the new mapping has no Pending entries; otherwise "
+                             "a DRAFT that says how many entries still need a decision")
+    parser.add_argument("--skip-tests", action="store_true",
+                        help="Do not run the unit tests (the packaged app does not carry them)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Build and check in Result/_building only; leave Result/ unchanged")
     parser.add_argument("--publish-staged", type=Path, metavar="FOLDER",
@@ -144,25 +199,34 @@ def main() -> int:
     stage = STAGING / run
     stage.mkdir(parents=True)
     log = stage / "PIPELINE_RUN.log"
-    suffix = "" if args.final else " DRAFT"
     mapping = stage / MAPPING_NAME
     layouts = list(REPORTS) if args.layout == "both" else [args.layout]
-    reports = {layout: stage / f"{REPORTS[layout]}{suffix}.xlsx" for layout in layouts}
     window = ["--start", args.start, "--end", args.end] if args.start else ["--all-dates"]
-    mode = [] if args.final else ["--draft"]
     steps: list = []
     summary = {"run": run, "source": args.source.name, "reference": args.reference.name,
                "menu_list": args.menu_list.name,
                "previous_mapping": str(args.previous) if args.previous else None,
                "mode": "final" if args.final else "draft", "steps": steps}
+    reports: dict = {}
+    mode: list = []
     workflow = HERE / "pmix_workflow.py"
     try:
-        run_step("unit tests", [HERE / "test_pmix_workflow.py"], log, steps)
+        if not args.skip_tests:
+            run_step("unit tests", [HERE / "test_pmix_workflow.py"], log, steps)
         map_args = [workflow, "--source", args.source, "map", "--output", mapping,
                     "--menu-list", args.menu_list, "--reference", args.reference]
         if args.previous is not None:
             map_args += ["--previous", args.previous]
         summary["mapping"] = last_json(run_step("build mapping", map_args, log, steps))
+        if args.auto:
+            summary["pending_entries"] = pending_entries(mapping)
+            args.final = summary["pending_entries"] == 0
+            summary["mode"] = "final" if args.final else "draft"
+            print(f"    {summary['pending_entries']} Pending entries: building the "
+                  f"{summary['mode']} report", flush=True)
+        suffix = "" if args.final else " DRAFT"
+        mode = [] if args.final else ["--draft"]
+        reports.update({layout: stage / f"{REPORTS[layout]}{suffix}.xlsx" for layout in layouts})
         for layout, report in reports.items():
             built = run_step(f"build {layout} report", [
                 workflow, "--source", args.source, "report", "--layout", layout,

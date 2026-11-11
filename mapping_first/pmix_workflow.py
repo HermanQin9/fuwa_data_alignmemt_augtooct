@@ -10,6 +10,7 @@ import datetime as dt
 import hashlib
 import json
 import re
+import sys
 import unicodedata
 from pathlib import Path
 
@@ -17,7 +18,16 @@ import openpyxl
 import pandas as pd
 
 
-ROOT = Path(__file__).resolve().parent.parent
+# The packaged Windows app (pmix_app.py) keeps its data next to the .exe: the reference workbooks
+# in that folder and the four decision files in decisions/. From source they sit where they
+# always did, so nothing changes there.
+FROZEN = getattr(sys, "frozen", False)
+if FROZEN:
+    ROOT = Path(sys.executable).resolve().parent
+    DECISIONS = ROOT / "decisions"
+else:
+    ROOT = Path(__file__).resolve().parent.parent
+    DECISIONS = Path(__file__).resolve().parent
 CATEGORIES = [
     "Pancakes", "Fluffy All Day", "Drinks", "Japanese Eats",
     "Cheesecakes", "Pastries", "Promotions", "Add-Ons",
@@ -28,14 +38,14 @@ CATEGORIES = [
 ]
 # Business decision, 2026-10-31: the Square Tucker label is the same store as the Toast one.
 LOCATION_ALIASES = {"Fluffy Fluffy Tucker GA": "Fluffy Fluffy - Tucker"}
-OVERRIDES_FILE = Path(__file__).resolve().parent / "mapping_overrides.json"
-NAME_OVERRIDES_FILE = Path(__file__).resolve().parent / "menu_name_overrides.json"
+OVERRIDES_FILE = DECISIONS / "mapping_overrides.json"
+NAME_OVERRIDES_FILE = DECISIONS / "menu_name_overrides.json"
 # Reviewer decisions per entry (status, section, category, name); written by recategorize.py.
-REVIEW_FILE = Path(__file__).resolve().parent / "review_decisions.json"
+REVIEW_FILE = DECISIONS / "review_decisions.json"
 REVIEW_EVIDENCE = "Reviewed by"
 MENU_LIST_FILE = ROOT / "Menu Items List.xlsx"
 # Names a reviewer approved adding to the list; the original workbook stays untouched.
-MENU_ADDITIONS_FILE = Path(__file__).resolve().parent / "menu_list_additions.json"
+MENU_ADDITIONS_FILE = DECISIONS / "menu_list_additions.json"
 MENU_LIST_SHEET = "USA Menu List"
 # Cheena's own pile of names she has not placed or cleaned yet; never used as a clean spelling.
 UNSORTED_SECTION = "UNCATEGORIZED"
