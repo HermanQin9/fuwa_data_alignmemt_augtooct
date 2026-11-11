@@ -31,7 +31,8 @@
 - Do not modify the original source workbooks (`USA PMix.xlsx`, `Quarterly PMIX Report.xlsx`,
   `Menu Items List.xlsx`). The last is Cheena's cleaned menu list and the reference for item names.
 - Business decisions go in `business_rule` or `mapping_overrides.json`, so a rebuild keeps them.
-  Item-name decisions go in `menu_name_overrides.json`.
+  Item-name decisions go in `menu_name_overrides.json`. Names Cheena approved adding to the menu
+  list go in `menu_list_additions.json`; `Menu Items List.xlsx` itself stays unmodified.
 - Never mark a mapping Approved without the user saying so.
 - Do not force unknown items into a category to reach zero unmapped.
 - Do not put category-level or store-level Qty in tracked files. The repo is public.

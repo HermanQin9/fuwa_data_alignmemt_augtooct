@@ -19,6 +19,8 @@ SOURCE = ROOT.parent / "USA PMix.xlsx"
 RESULT = ROOT.parent / "Result"
 # Restated here rather than imported, so the audit stays independent of the workflow.
 LOCATION_ALIASES = {"Fluffy Fluffy Tucker GA": "Fluffy Fluffy - Tucker"}
+# The source column that holds the time of sale, per POS sheet.
+TIME_COLUMNS = {"TOAST": "Sent Date - Copy", "SQUARE": "Time"}
 
 
 def records(sheet):
@@ -68,6 +70,7 @@ def main():
             ("TOAST", "Menu Group", "Menu Item", "Sent Date"),
             ("SQUARE", "Category", "Item", "Date"),
         ]:
+            time_column = TIME_COLUMNS[name]
             src_rows = source[name].iter_rows(values_only=True)
             dst_rows = output[name].iter_rows(values_only=True)
             headers, dest_headers = next(src_rows), next(dst_rows)
@@ -109,7 +112,9 @@ def main():
                     )
                 if not in_window:
                     continue
-                expected[row_id] = (rule, qty, sale_date, location)
+                when = original[indices[time_column]] if time_column in indices else original[indices[date]]
+                sale_time = when.time() if isinstance(when, dt.datetime) else when
+                expected[row_id] = (rule, qty, sale_date, location, sale_time)
                 all_qty += qty
                 if rule["Category"] and rule["Review Status"] != "Excluded":
                     quarter = (sale_date.month - 1) // 3 + 1
@@ -135,10 +140,15 @@ def main():
             row_id = (row["POS Sheet"], row["Source Row"])
             assert row_id not in seen, f"Duplicate pivot row {row_id}"
             seen.add(row_id)
-            rule, qty, sale_date, location = expected[row_id]
+            rule, qty, sale_date, location, sale_time = expected[row_id]
             assert rule["Category"], f"Unresolved row incorrectly in pivot: {row_id}"
             for field in ("Category", "Menu", "Menu group", "Item", "Mapping ID", "Review Status"):
                 assert row[field] == rule[field], f"Mapping not applied: {row_id} {field}"
+            assert row["Time"] == sale_time, f"Wrong sale time: {row_id}"
+            for field in ("Location", "Category", "Menu", "Menu group", "Item"):
+                assert str(row[field]) == str(row[field]).strip(), f"Untrimmed {field}: {row_id}"
+            if "Menu List Section" in row and blank(rule.get("Menu List Section")):
+                assert row["Menu List Section"] == rule["Menu List Section"], f"Wrong section: {row_id}"
             assert row["Qty"] == qty and row["Location"] == location
             assert isinstance(row["Date"], dt.datetime) and row["Date"].date() == sale_date
             quarter = (sale_date.month - 1) // 3 + 1
@@ -157,8 +167,9 @@ def main():
         assert seen | exception_ids == set(expected)
         for row in exceptions:
             row_id = (row["POS Sheet"], row["Source Row"])
-            rule, qty, sale_date, location = expected[row_id]
+            rule, qty, sale_date, location, sale_time = expected[row_id]
             assert row["Qty"] == qty and row["Location"] == location
+            assert row["Time"] == sale_time, f"Wrong sale time in Exceptions: {row_id}"
             assert row["Date"].date() == sale_date
             for field in ("Category", "Menu", "Menu group", "Item", "Mapping ID", "Review Status"):
                 assert blank(row[field]) == blank(rule[field]), (

@@ -1,0 +1,40 @@
+{
+ "_note": "Names Cheena agreed to add to the Menu Items List (2026-11-09: 'It's ok to add those new items since we need the menu list to be finalized'). Menu Items List.xlsx itself is not changed; these are added each time it is read. Menu names only, no sales figures.",
+ "by": "Cheena 2026-11-09",
+ "sections": {
+  "BASQUE CHEESECAKES": [
+   "Earl Gray Basque Cheesecake - Slice",
+   "Oreo Basque Cheesecake - Slice"
+  ],
+  "DRINKS - ESPRESSO LATTES": [
+   "Fluffy Fluffy Espresso"
+  ],
+  "DRINKS - FRAPPE": [
+   "Cookies & Cream Frappe"
+  ],
+  "DRINKS - WATER": [
+   "Water W Lemon"
+  ],
+  "FLUFFY ALL DAY - ENTREES": [
+   "Eggs Benedict (Egg & Cheese)",
+   "Eggs Benedict Pancake (Bacon and Sausage)",
+   "Eggs Benedict Pancake (Ham and Cheese)"
+  ],
+  "FLUFFY ALL DAY - SANDWICHES": [
+   "Croissant Sandwich - Double Egg and Cheese",
+   "Sausage and Egg Croffle Sandwich",
+   "Tuna Croffle Sandwiches"
+  ],
+  "PANCAKES": [
+   "Apple Caramel Pancakes",
+   "Nutella Pancakes"
+  ],
+  "PASTRIES": [
+   "Blueberry Muffin",
+   "Macaron"
+  ],
+  "SWEET CROFFLES": [
+   "Crème Brulee Croffles"
+  ]
+ }
+}
