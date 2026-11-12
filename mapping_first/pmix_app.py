@@ -95,6 +95,16 @@ def summary_text() -> str:
     except (OSError, ValueError):
         return "Your report is in the Result folder."
     pending = run.get("pending_entries", 0)
+    mapping = run.get("mapping", {})
+    names = ""
+    if mapping.get("names_changed_automatically"):
+        names += (f"\n\n{mapping['names_changed_automatically']} new item name(s) were changed to the "
+                  "Menu Items List spelling automatically (see the 'Changes' sheet of the mapping).")
+    if mapping.get("name_suggestions_waiting"):
+        names += (f"\n\n{mapping['name_suggestions_waiting']} item(s) have a suggested Menu Items List "
+                  "name. In the mapping, filter 'Suggested Name' for non-blanks, and set 'Accept "
+                  "Suggestion' to Yes to use a name (or No to keep the original). It is used the "
+                  "next time you build the report.")
     if pending:
         return (
             f"The report is a DRAFT, because {pending} new item(s) do not have a category yet.\n\n"
@@ -102,9 +112,9 @@ def summary_text() -> str:
             "1. Open 'USA PMix - Menu Mapping.xlsx' in the Result folder.\n"
             "2. Go to the 'Menu Category' sheet and filter the 'Review Status' column for 'Pending'.\n"
             "3. For each new item, fill in the category and change 'Review Status' to 'Approved'.\n"
-            "4. Save, close Excel, and press 'Build report' again.")
+            "4. Save, close Excel, and press 'Build report' again." + names)
     return ("Your report is ready: 'USA PMix - Menu List Report.xlsx' in the Result folder.\n\n"
-            "Every item has a category and every check passed.")
+            "Every item has a category and every check passed." + names)
 
 
 # The pipeline's step names, in plain English (all four run in the packaged app).
@@ -281,13 +291,20 @@ def main() -> None:
             if not shown["on"]:
                 toggle_details()
             lines = [x.strip() for x in details.get("1.0", "end").splitlines() if x.strip()]
-            errors = [x for x in lines if re.match(r"^[A-Za-z]+(Error|Exception): ", x)]
-            reason = errors[-1].split(": ", 1)[1] if errors else ""
+            errors = [n for n, x in enumerate(lines) if re.match(r"^[\w.]*(Error|Exception): ", x)]
+            reason = ""
+            if errors:
+                # The error's own text, which can run over several lines (a list of items).
+                block = lines[errors[-1]:]
+                end = next((n for n, x in enumerate(block) if x.startswith("FAILED")), len(block))
+                block = block[:end][:25]
+                block[0] = block[0].split(": ", 1)[1]
+                reason = "\n".join(block)
             messagebox.showerror(
                 "PMIX report",
                 "Something went wrong, and none of your existing files were changed.\n\n"
-                + (f"Reason: {reason}\n\n" if reason else "")
-                + "Please press 'Copy details' and send the text to Herman.")
+                + (f"{reason}\n\n" if reason else "")
+                + "Please press 'Copy details' and send the text to Herman if you need help.")
 
     def start() -> None:
         if state["running"]:

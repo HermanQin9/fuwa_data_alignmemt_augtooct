@@ -21,6 +21,7 @@ RESULT = ROOT.parent / "Result"
 LOCATION_ALIASES = {"Fluffy Fluffy Tucker GA": "Fluffy Fluffy - Tucker"}
 # The source column that holds the time of sale, per POS sheet.
 TIME_COLUMNS = {"TOAST": "Sent Date - Copy", "SQUARE": "Time"}
+MONEY = ["Gross Sales", "Discount", "Net Sales", "Tax"]
 
 
 def records(sheet):
@@ -57,6 +58,7 @@ def main():
             mapping_qty += row["Net Qty"]
 
         expected = {}
+        expected_money = {}
         category_totals = Counter()
         report_totals = Counter()
         mapping_counts = Counter()
@@ -115,6 +117,8 @@ def main():
                 when = original[indices[time_column]] if time_column in indices else original[indices[date]]
                 sale_time = when.time() if isinstance(when, dt.datetime) else when
                 expected[row_id] = (rule, qty, sale_date, location, sale_time)
+                expected_money[row_id] = tuple(
+                    original[indices[c]] if c in indices else None for c in MONEY)
                 all_qty += qty
                 if rule["Category"] and rule["Review Status"] != "Excluded":
                     quarter = (sale_date.month - 1) // 3 + 1
@@ -150,6 +154,8 @@ def main():
             if "Menu List Section" in row and blank(rule.get("Menu List Section")):
                 assert row["Menu List Section"] == rule["Menu List Section"], f"Wrong section: {row_id}"
             assert row["Qty"] == qty and row["Location"] == location
+            for column, value in zip(MONEY, expected_money[row_id]):
+                assert blank(row.get(column)) == blank(value), f"Wrong {column}: {row_id}"
             assert isinstance(row["Date"], dt.datetime) and row["Date"].date() == sale_date
             quarter = (sale_date.month - 1) // 3 + 1
             assert row["Year"] == sale_date.year
@@ -169,6 +175,8 @@ def main():
             row_id = (row["POS Sheet"], row["Source Row"])
             rule, qty, sale_date, location, sale_time = expected[row_id]
             assert row["Qty"] == qty and row["Location"] == location
+            for column, value in zip(MONEY, expected_money[row_id]):
+                assert blank(row.get(column)) == blank(value), f"Wrong {column} in Exceptions: {row_id}"
             assert row["Time"] == sale_time, f"Wrong sale time in Exceptions: {row_id}"
             assert row["Date"].date() == sale_date
             for field in ("Category", "Menu", "Menu group", "Item", "Mapping ID", "Review Status"):

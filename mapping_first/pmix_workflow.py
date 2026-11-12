@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import difflib
 import hashlib
 import json
 import re
@@ -131,6 +132,56 @@ def tidy(value: object) -> str:
     return re.sub(r"\s+", " ", text(value)).strip()
 
 
+def clean_item_name(value: object) -> str:
+    """Tidy a name and drop the POS '#' marker some Square items start with ('#Americano')."""
+    return tidy(re.sub(r"^\s*#+\s*", "", text(value)))
+
+
+# Amount columns of the POS exports; Cheena's exports carry them (blank for now) after Qty.
+MONEY_COLUMNS = ["Gross Sales", "Discount", "Net Sales", "Tax"]
+
+
+class MappingError(ValueError):
+    """The saved mapping has problems a reviewer can fix; the message lists every one of them."""
+
+
+def raise_problems(headline: str, problems: list[str], advice: str) -> None:
+    if not problems:
+        return
+    shown = problems[:30]
+    lines = [headline, *[f"  - {p}" for p in shown]]
+    if len(problems) > len(shown):
+        lines.append(f"  ... and {len(problems) - len(shown)} more")
+    lines.append(advice)
+    raise MappingError("\n".join(lines))
+
+
+def describe_entry(row) -> str:
+    group = f", group {text(row['Source Group'])!r}" if text(row["Source Group"]) else ""
+    return f"{text(row['Source Item'])!r} ({text(row['POS Sheet'])}{group})"
+
+
+def complete_names(mapping: pd.DataFrame) -> pd.DataFrame:
+    """Give every categorized entry a clean Item, a Menu and a Menu group.
+
+    A reviewer only has to choose a Category for an item that had none. The Item loses a leading
+    '#'; a blank Menu becomes the Category and a blank Menu group the source group, so the
+    report's row levels are never empty.
+    """
+    mapping = mapping.copy()
+    mapping["Item"] = [clean_item_name(v) for v in mapping["Item"]]
+    categorized = mapping["Category"].map(lambda v: bool(text(v)))
+    for index in mapping.index[categorized]:
+        row = mapping.loc[index]
+        if not text(row["Item"]).strip():
+            mapping.at[index, "Item"] = clean_item_name(row["Source Item"])
+        if not text(row["Menu"]).strip():
+            mapping.at[index, "Menu"] = row["Category"]
+        if not text(row["Menu group"]).strip():
+            mapping.at[index, "Menu group"] = text(row["Source Group"]).strip() or mapping.at[index, "Menu"]
+    return mapping
+
+
 def read_menu_list(path: Path) -> list[tuple[str, str]]:
     """(section, name) pairs from the Menu Items List. Bold cells are section headings."""
     book = openpyxl.load_workbook(path, data_only=True)
@@ -181,6 +232,31 @@ def read_full_menu_list(path: Path) -> list[tuple[str, str]]:
     return add_menu_names(read_menu_list(path), load_menu_additions())
 
 
+# Columns the mapping gets for renaming items to the Menu Items List (see apply_suggestions).
+SUGGEST_COLUMNS = ["Suggested Name", "Suggested Section", "Match Confidence", "Accept Suggestion"]
+HIGH_MATCH = "High - same words"
+MEDIUM_MATCH = "Medium - similar spelling"
+AUTO = "Auto"
+NUMBER_WORDS = {"one": "1", "two": "2", "three": "3", "four": "4", "five": "5", "six": "6",
+                "seven": "7", "eight": "8", "nine": "9", "ten": "10", "twelve": "12",
+                "single": "1", "double": "2", "half": "0.5", "whole": "w", "dozen": "12"}
+
+
+def word_key(value: object) -> str:
+    """The words of a name, ignoring case, accents, punctuation, '&', plurals and word order.
+
+    A count and its unit are one word, so '(8 pcs)' and '(8pcs)' agree."""
+    joined = re.sub(r"(\d)\s+(pcs?|pieces?|ct|oz)\b", r"\1\2", normalized(value))
+    return " ".join(sorted(singular(t) for t in joined.split()))
+
+
+def numbers_of(value: object) -> frozenset:
+    """The quantities in a name ('2 Eggs', 'One scoop', '(12 pcs)') so different counts never match."""
+    return frozenset(NUMBER_WORDS.get(t, t.lstrip("0") or "0")
+                     for t in re.findall(r"[a-z]+|\d+", normalized(value))
+                     if t.isdigit() or t in NUMBER_WORDS)
+
+
 class MenuList:
     """The menu names, indexed by normalized spelling.
 
@@ -217,6 +293,35 @@ class MenuList:
                 return hit
         return None
 
+    def suggest(self, *spellings: object) -> tuple[str, str] | None:
+        """A list name for an item that is not on the list: (name, confidence), or None.
+
+        High: the same words once case, accents, punctuation, '&', plurals and word order are
+        ignored ('Bacon Eggs Benedict' and 'Eggs Benedict (Bacon)'). Medium: a very similar
+        spelling (90% or more), which may be a typo or a different product, so a person decides.
+        A match whose numbers differ ('2 Pieces' and '(1 piece)') is never suggested.
+        """
+        if not hasattr(self, "_words"):
+            self._words: dict[str, set[str]] = {}
+            for key, (name, _) in self.names.items():
+                self._words.setdefault(word_key(name), set()).add(name)
+            self._keys = list(self.names)
+        spellings = [x for x in spellings if normalized(x)]
+        for spelling in spellings:
+            hits = self._words.get(word_key(spelling), set())
+            if len(hits) == 1 and numbers_of(spelling) == numbers_of(next(iter(hits))):
+                return next(iter(hits)), HIGH_MATCH
+        for spelling in spellings[:1]:
+            key = normalized(spelling)
+            close = difflib.get_close_matches(key, self._keys, n=2, cutoff=0.9)
+            if close:
+                ratios = [difflib.SequenceMatcher(None, key, c).ratio() for c in close]
+                name = self.names[close[0]][0]
+                if (len(close) == 1 or ratios[0] - ratios[1] >= 0.02) \
+                        and numbers_of(spelling) == numbers_of(name):
+                    return name, MEDIUM_MATCH
+        return None
+
     def label(self, name: str) -> str:
         """'Name [SECTION / SECTION]' for a name that is on the list."""
         listed, sections = self.names[normalized(name)]
@@ -237,7 +342,7 @@ def check_menu_name(menu_list: MenuList, name_overrides: dict, ident: str,
     respelled automatically. A judged close match is respelled too but flagged for review.
     Anything else keeps its own name and is noted as not listed.
     """
-    name = tidy(name)
+    name = clean_item_name(name)
     hit = menu_list.find(source_item, name)
     if hit:
         listed = hit[0]
@@ -355,6 +460,17 @@ def load_sources(source: Path) -> tuple[dict[str, pd.DataFrame], pd.DataFrame]:
         for column in (item, "Location"):
             if df[column].map(lambda v: not text(v).strip()).any():
                 raise ValueError(f"{name}: blank {column}; source needs correction")
+        money = {}
+        for column in MONEY_COLUMNS:
+            if column in df:
+                blank = df[column].map(lambda v: not text(v).strip())
+                try:
+                    money[column] = pd.to_numeric(df[column].where(~blank, None), errors="raise")
+                except (ValueError, TypeError) as error:
+                    raise ValueError(f"{name}: '{column}' must contain numbers only "
+                                     f"(for example 12.50), or be left blank") from error
+            else:
+                money[column] = float("nan")
         qty = pd.to_numeric(df["Qty"], errors="raise")
         if qty.isna().any() or not qty.map(lambda v: float(v).is_integer()).all():
             raise ValueError(f"{name}: Qty must contain nonblank integer quantities")
@@ -369,6 +485,7 @@ def load_sources(source: Path) -> tuple[dict[str, pd.DataFrame], pd.DataFrame]:
                 lambda v: LOCATION_ALIASES.get(text(v).strip(), text(v).strip())),
             "Source Location": df["Location"].map(lambda v: text(v).strip()),
             "Date": dates.dt.normalize(), "Qty": qty,
+            **money,
         })
         part["Mapping ID"] = [
             mapping_id(name, g, i) for g, i in zip(df[group], df[item])
@@ -678,6 +795,13 @@ def carry_over(mapping: pd.DataFrame, previous: pd.DataFrame, decided: set | fro
     Returns (mapping, earlier decisions not in this data, changes).
     """
     old = {row["Mapping ID"]: row for row in previous.to_dict("records")}
+    raise_problems(
+        "These items are marked 'Approved' in the saved mapping but have no valid Category:",
+        [describe_entry(row) for row in previous.to_dict("records")
+         if row["Review Status"] == "Approved" and row["Category"] not in CATEGORIES],
+        "Open the mapping file, sheet Menu Category. For each item above, choose a Category from "
+        "the list. If you cannot place an item, set Review Status to 'Excluded' and write the "
+        "reason in Review Notes. Then run again.")
     mapping = mapping.copy()
     changes = []
 
@@ -700,9 +824,6 @@ def carry_over(mapping: pd.DataFrame, previous: pd.DataFrame, decided: set | fro
                                                     for f in shown))
             continue
         if text(before["Review Status"]) in REVIEWED:
-            if before["Review Status"] == "Approved" and before["Category"] not in CATEGORIES:
-                raise ValueError(f"Previous mapping: Approved entry {row['Source Item']!r} "
-                                 f"has invalid Category {before['Category']!r}")
             for field in REVIEW_FIELDS:
                 mapping.at[index, field] = before[field]
             if text(before[LIST_SECTION]):
@@ -724,6 +845,63 @@ def carry_over(mapping: pd.DataFrame, previous: pd.DataFrame, decided: set | fro
     earlier = previous[~previous["Mapping ID"].isin(current)
                        & previous["Review Status"].isin(REVIEWED)][MAPPING_COLUMNS]
     return mapping, earlier.reset_index(drop=True), pd.DataFrame(changes, columns=CHANGE_COLUMNS)
+
+
+SUGGESTION_APPLIED = "Name suggestion applied"
+
+
+def apply_suggestions(mapping: pd.DataFrame, menu_list: MenuList, previous: pd.DataFrame | None = None
+                      ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Suggest, and where decided apply, the Menu Items List name for items not on the list.
+
+    Every entry that is not on the list gets Suggested Name, Suggested Section and Match
+    Confidence. Accept Suggestion is the reviewer's decision: 'Yes' renames the item on the
+    next run, 'No' keeps its own name. A High match on an entry that is still Pending is
+    renamed automatically and marked 'Auto'; a reviewed (Approved/Excluded) entry is never
+    renamed unless the reviewer says Yes. Returns the mapping and the changes made.
+    """
+    mapping = mapping.copy()
+    for column in SUGGEST_COLUMNS:
+        mapping[column] = ""
+    before = ({r["Mapping ID"]: r for r in previous.to_dict("records")}
+              if previous is not None else {})
+    made = []
+    for index in mapping.index:
+        row = mapping.loc[index]
+        old = before.get(row["Mapping ID"], {})
+        choice = text(old.get("Accept Suggestion")).strip().capitalize()
+        if choice == AUTO:
+            choice = ""  # automatic renames are worked out again every run
+        if row["Menu List Status"] != NOT_LISTED:
+            # Already on the list: keep the record of a suggestion that was accepted earlier.
+            kept = [text(old.get(c)) for c in SUGGEST_COLUMNS]
+            if kept[0] and text(old.get("Accept Suggestion")) in ("Yes", AUTO) \
+                    and text(row["Item"]) == kept[0]:
+                for column, value in zip(SUGGEST_COLUMNS, kept):
+                    mapping.at[index, column] = value
+            continue
+        found = menu_list.suggest(row["Item"], row["Source Item"])
+        if not found:
+            if choice:
+                mapping.at[index, "Accept Suggestion"] = choice
+            continue
+        name, confidence = found
+        section = list_section(menu_list, name, row["Category"])
+        auto = (choice == "" and confidence == HIGH_MATCH and row["Review Status"] == "Pending")
+        accept = AUTO if auto else choice
+        mapping.loc[index, SUGGEST_COLUMNS] = [name, section, confidence, accept]
+        if auto or choice == "Yes":
+            mapping.at[index, "Item"] = name
+            mapping.at[index, "Menu List Status"] = CLOSE_MATCH if auto else RENAMED
+            mapping.at[index, "Menu List Match"] = menu_list.label(name)
+            if text(row[LIST_SECTION]).strip() in ("", NOT_LISTED, UNSORTED_SECTION):
+                mapping.at[index, LIST_SECTION] = section  # a section a reviewer chose stays
+            made.append({**{c: row[c] for c in ["Mapping ID", *KEY_COLUMNS]},
+                         "Change": SUGGESTION_APPLIED,
+                         "Details": f"{text(row['Item'])!r} -> {name!r} ({confidence}; "
+                                    f"{'automatic' if auto else 'accepted by the reviewer'}). "
+                                    "Set Accept Suggestion to No to keep the original name."})
+    return mapping, pd.DataFrame(made, columns=CHANGE_COLUMNS)
 
 
 def write_table(writer, name: str, frame: pd.DataFrame, autofilter: bool = True) -> None:
@@ -761,11 +939,16 @@ def make_mapping(source_path: Path, output: Path, menu_list_path: Path = MENU_LI
     reference = read_reference(reference_path or source_path)
     menu_entries = read_full_menu_list(menu_list_path)
     decisions = load_review_decisions()
-    mapping = propose_mapping(source, reference, MenuList(menu_entries), load_name_overrides(),
-                              decisions)
-    earlier = changes = None
+    menu_list = MenuList(menu_entries)
+    mapping = propose_mapping(source, reference, menu_list, load_name_overrides(), decisions)
+    earlier = changes = previous = None
     if previous_path is not None:
-        mapping, earlier, changes = carry_over(mapping, read_previous(previous_path), set(decisions))
+        previous = read_previous(previous_path)
+        mapping, earlier, changes = carry_over(mapping, previous, set(decisions))
+    mapping, renamed = apply_suggestions(mapping, menu_list, previous)
+    if changes is not None:
+        changes = pd.concat([changes, renamed], ignore_index=True)
+    mapping = complete_names(mapping)
     coverage = source.groupby(["POS Sheet", "Location"], dropna=False).agg(
         Rows=("Qty", "size"), Net_Qty=("Qty", "sum"),
         First_Date=("Date", "min"), Last_Date=("Date", "max"),
@@ -790,6 +973,11 @@ def make_mapping(source_path: Path, output: Path, menu_list_path: Path = MENU_LI
         ws.data_validation(1, 8, len(mapping), 8, {
             "validate": "list", "source": ["Pending", "Approved", "Excluded"],
         })
+        accept = list(mapping.columns).index("Accept Suggestion")
+        ws.data_validation(1, accept, len(mapping), accept, {
+            "validate": "list", "source": ["Yes", "No"], "ignore_blank": True,
+            "error_type": "warning",
+        })
     carried = {}
     if previous_path is not None:
         carried = {"previous_mapping": previous_path.name,
@@ -803,6 +991,9 @@ def make_mapping(source_path: Path, output: Path, menu_list_path: Path = MENU_LI
             "menu_list_status": mapping["Menu List Status"].value_counts().to_dict(),
             "suggested_rows": int(mapping["Category"].ne("").sum()),
             "excluded_rows": int(mapping["Review Status"].eq("Excluded").sum()),
+            "name_suggestions_waiting": int((mapping["Suggested Name"].ne("")
+                                             & mapping["Accept Suggestion"].eq("")).sum()),
+            "names_changed_automatically": int(mapping["Accept Suggestion"].eq(AUTO).sum()),
             "unresolved_rows": int((mapping["Category"].eq("")
                                     & mapping["Review Status"].ne("Excluded")).sum())}
 
@@ -816,19 +1007,24 @@ def apply_mapping(source: pd.DataFrame, mapping: pd.DataFrame, draft: bool) -> p
     mapping = mapping.copy()
     for column in mapping:
         mapping[column] = mapping[column].map(lambda v: "" if pd.isna(v) else v)
+    problems = []
     for row in mapping.to_dict("records"):
         if row["Mapping ID"] != mapping_id(*(row[c] for c in KEY_COLUMNS)):
             raise ValueError("Mapping source identity was edited; rebuild the mapping instead")
+        found = []
         if row["Category"] and row["Category"] not in CATEGORIES:
-            raise ValueError(f"Invalid Category {row['Category']!r}")
+            found.append(f"Invalid Category {row['Category']!r}")
         if row["Review Status"] not in ("Pending", "Approved", "Excluded"):
-            raise ValueError(f"Invalid Review Status {row['Review Status']!r}")
+            found.append(f"Invalid Review Status {row['Review Status']!r}")
         if row["Review Status"] == "Approved" and not row["Category"]:
-            raise ValueError("Approved mappings require one of the allowed categories")
+            found.append("Approved mappings require one of the allowed categories")
         if row["Review Status"] == "Excluded" and not text(row["Review Notes"]).strip():
-            raise ValueError("Excluded mappings require a reason in Review Notes")
+            found.append("Excluded mappings require a reason in Review Notes")
         if row["Category"] and not all(text(row[c]).strip() for c in ("Menu", "Menu group", "Item")):
-            raise ValueError("Categorized mappings require Menu, Menu group and Item")
+            found.append("Categorized mappings require Menu, Menu group and Item")
+        problems += [f"{describe_entry(row)}: {why}" for why in found]
+    raise_problems("The mapping has entries that cannot be used:", problems,
+                   "Fix them in the Menu Category sheet of the mapping file, then run again.")
     fields = ["Mapping ID", "Category", "Menu", "Menu group", "Item",
               "Review Status", "Evidence", "Review Notes"]
     if LIST_SECTION in mapping:
@@ -906,7 +1102,7 @@ def create_pivot(path: Path, layout: str = "category") -> None:
         cache = book.PivotCaches().Create(SourceType=1, SourceData="PMIXData", Version=5)
 
         pivot = cache.CreatePivotTable(
-            TableDestination=sheet.Range("A9"), TableName="MenuPMIX", DefaultVersion=5,
+            TableDestination=sheet.Range("A22"), TableName="MenuPMIX", DefaultVersion=5,
         )
         pivot.ManualUpdate = True
         pivot.HasAutoFormat = False  # keep column widths, so slicers never cover the table
@@ -921,6 +1117,10 @@ def create_pivot(path: Path, layout: str = "category") -> None:
         percentage = pivot.AddDataField(pivot.PivotFields("Qty"), "Qty (%)", -4157)
         percentage.Calculation = 8
         percentage.NumberFormat = "0.00%"
+        for column in MONEY_COLUMNS:
+            # A measure cannot share a name with a source field, hence the "($)".
+            measure = pivot.AddDataField(pivot.PivotFields(column), f"{column} ($)", -4157)
+            measure.NumberFormat = '#,##0.00;-#,##0.00;"-"'
         pivot.RowAxisLayout(0)
         pivot.RowGrand, pivot.ColumnGrand = False, True
         pivot.DisplayErrorString = True
@@ -952,21 +1152,25 @@ def create_pivot(path: Path, layout: str = "category") -> None:
         sort_largest_first(grid, rows)
 
         sheet.Columns("A:A").ColumnWidth = 48
-        sheet.Columns("B:H").ColumnWidth = 14
+        table = pivot.TableRange2
+        last_column = table.Column + table.Columns.Count - 1
+        sheet.Range(sheet.Cells(1, 2), sheet.Cells(1, max(last_column, 8))).EntireColumn.ColumnWidth = 17
         by_location.Columns("A:A").ColumnWidth = 48
-        by_location.Columns("B:W").ColumnWidth = 16
+        by_location.Range("B:BZ").ColumnWidth = 16
         by_location.Rows(grid.TableRange1.Row + 1).WrapText = True
-        origin = sheet.Range("I1").Left
+        # The slicers sit in a band above the table (rows 9-21), where they stay in view however
+        # many periods and measures the table has.
+        band = sheet.Range("A9").Top + 4
 
         # Every control is a plain slicer whose buttons carry only digits and English names.
         controls = {}
         for name, caption, left, width in (
-            (group, group, 0, 200), ("Location", "Location", 220, 240),
-            ("Month", "Month", 480, 120), ("Week starting", "Week starting", 620, 150),
+            (group, group, 5, 200), ("Location", "Location", 215, 240),
+            ("Month", "Month", 465, 120), ("Week starting", "Week starting", 595, 150),
         ):
             slicer_cache = book.SlicerCaches.Add2(pivot, name)
             place(slicer_cache.Slicers.Add(sheet, pythoncom.Missing, "Select" + name, caption),
-                  caption, 35, origin + left, width, 420)
+                  caption, band, left, width, 180)
             controls[name] = slicer_cache
 
         # The same controls also drive the By Location table, and appear on its sheet.
@@ -1091,7 +1295,7 @@ def make_report(source_path: Path, mapping_path: Path, output: Path,
                 grid.write(4, 0, "Qty (#) = net item quantity. Rows listed in Exceptions are not included.")
             fields = ["Location", "Date", "Time", "Year", "Period", "Month", "Week starting", "Category", "Menu",
                       "Menu group", *([LIST_SECTION] if layout == "menu-list" else []), "Item", "Qty",
-                      "POS Sheet", "Source Row", "Mapping ID", "Review Status"]
+                      *MONEY_COLUMNS, "POS Sheet", "Source Row", "Mapping ID", "Review Status"]
             write_table(writer, "PMIXData", data[fields], autofilter=False)
             writer.sheets["PMIXData"].add_table(0, 0, len(data), len(fields) - 1, {
                 "name": "PMIXData", "columns": [{"header": c} for c in fields],

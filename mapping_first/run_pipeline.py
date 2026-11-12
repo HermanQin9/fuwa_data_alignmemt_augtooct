@@ -56,7 +56,9 @@ def call_in_process(script: Path, args: list) -> tuple[int, str, str]:
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             try:
                 sys.path.insert(0, str(HERE))
-                importlib.import_module(Path(script).stem).main()
+                result = importlib.import_module(Path(script).stem).main()
+                # A step that reports failure by returning a non-zero number (verify_result.py).
+                code = result if isinstance(result, int) else 0
             except SystemExit as stop:
                 code = stop.code if isinstance(stop.code, int) else (0 if stop.code is None else 1)
                 if stop.code and not isinstance(stop.code, int):

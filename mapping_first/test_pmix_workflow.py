@@ -459,6 +459,187 @@ class MappingWorkflowTests(unittest.TestCase):
                 book.close()
 
 
+class NameAndAmountTests(unittest.TestCase):
+    """Cheena's test run of 2026-11-12: '#' in item names, blank Menu, and the amount columns."""
+
+    def test_hash_marker_is_dropped_from_item_names(self):
+        for raw in ("#Double Shot Espresso", "# Nutella Hazelnut Latte", "##Mocha ", "Item #2"):
+            with self.subTest(raw=raw):
+                cleaned = workflow.clean_item_name(raw)
+                self.assertFalse(cleaned.startswith("#") or cleaned.startswith(" "))
+        self.assertEqual(workflow.clean_item_name("#Double  Shot Espresso"), "Double Shot Espresso")
+        self.assertEqual(workflow.clean_item_name("Item #2"), "Item #2")  # only a leading marker
+
+    def test_unlisted_items_lose_the_hash_too(self):
+        menu_list = workflow.MenuList([("DRINKS", "Latte")])
+        name, status, _ = workflow.check_menu_name(menu_list, {}, "x", "#Matcha Espresso Latte",
+                                                   "#Matcha Espresso Latte")
+        self.assertEqual((name, status), ("Matcha Espresso Latte", workflow.NOT_LISTED))
+
+    def test_a_category_alone_is_enough_the_rest_is_filled_in(self):
+        mapping = pd.DataFrame([{
+            "Source Group": "Specialty Latte", "Source Item": "#Raspberry Hot Cocoa",
+            "Category": "Drinks", "Menu": "", "Menu group": "", "Item": "#Raspberry Hot Cocoa"},
+            {"Source Group": "", "Source Item": "Pepsi", "Category": "Drinks", "Menu": "",
+             "Menu group": "", "Item": ""},
+            {"Source Group": "G", "Source Item": "Custom", "Category": "", "Menu": "",
+             "Menu group": "", "Item": ""}])
+        done = workflow.complete_names(mapping)
+        self.assertEqual(done.loc[0, ["Menu", "Menu group", "Item"]].tolist(),
+                         ["Drinks", "Specialty Latte", "Raspberry Hot Cocoa"])
+        self.assertEqual(done.loc[1, ["Menu", "Menu group", "Item"]].tolist(),
+                         ["Drinks", "Drinks", "Pepsi"])
+        self.assertEqual(done.loc[2, ["Menu", "Menu group", "Item"]].tolist(), ["", "", ""])
+
+    def test_unusable_entries_are_all_reported_together(self):
+        tests = MappingWorkflowTests("test_map_covers_all_rows_and_blank_groups")
+        tests.setUp()
+        bad = tests.mapping.copy()
+        bad.loc[0, "Category"] = "Invented"
+        bad.loc[1, ["Review Status"]] = ["Approved"]
+        with self.assertRaises(workflow.MappingError) as caught:
+            workflow.apply_mapping(tests.source, bad, draft=True)
+        message = str(caught.exception)
+        self.assertIn("Invalid Category", message)
+        self.assertIn("require one of the allowed categories", message)
+
+    def book_with_amounts(self, directory, gross="", tax=None):
+        book = openpyxl.Workbook()
+        toast = book.active
+        toast.title = "TOAST"
+        toast.append(["Menu Group", "Menu Item", "Sent Date", "Qty", *workflow.MONEY_COLUMNS, "Location"])
+        toast.append(["Sandwiches", "BLT Sandwich", dt.datetime(2026, 8, 3), 1, gross, None, 10.5, tax,
+                      "Fluffy Fluffy - Tucker"])
+        square = book.create_sheet("SQUARE")
+        square.append(["Category", "Item", "Date", "Qty", "Location"])  # no amount columns at all
+        square.append(["Coffee", "Latte", dt.datetime(2026, 8, 4), 2, "Fluffy Fluffy Miami"])
+        path = Path(directory) / "amounts.xlsx"
+        book.save(path)
+        return path
+
+    def test_amount_columns_are_read_and_may_be_blank_or_missing(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            sheets, source = workflow.load_sources(self.book_with_amounts(directory, gross=12.25))
+        toast = source[source["POS Sheet"] == "TOAST"].iloc[0]
+        self.assertEqual((toast["Gross Sales"], toast["Net Sales"]), (12.25, 10.5))
+        self.assertTrue(pd.isna(toast["Discount"]) and pd.isna(toast["Tax"]))
+        self.assertTrue(source[source["POS Sheet"] == "SQUARE"][workflow.MONEY_COLUMNS].isna().all().all())
+        self.assertEqual(sheets["TOAST"]["Qty"].tolist(), [1])  # the source sheet copy is untouched
+
+    def test_text_in_an_amount_column_is_refused_in_plain_words(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            with self.assertRaisesRegex(ValueError, "'Gross Sales' must contain numbers only"):
+                workflow.load_sources(self.book_with_amounts(directory, gross="n/a"))
+
+    def test_report_data_sheet_carries_the_amount_columns(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as directory:
+            source = self.book_with_amounts(directory, gross=12.25)
+            mapping = Path(directory) / "mapping.xlsx"
+            checks = MappingWorkflowTests("test_map_covers_all_rows_and_blank_groups")
+            workflow.make_mapping(source, mapping, checks.small_menu_list(directory),
+                                  reference_path=checks.small_workbook(directory))
+            frame = pd.read_excel(mapping, sheet_name="Menu Category", dtype=object, keep_default_na=False)
+            frame.loc[:, "Review Status"] = "Pending"
+            output = Path(directory) / "report.xlsx"
+            workflow.make_report(source, mapping, output, None, None, draft=True, all_dates=True,
+                                 native=False, layout="menu-list")
+            data = pd.read_excel(output, sheet_name="PMIXData")
+        columns = list(data.columns)
+        self.assertEqual(columns[columns.index("Qty") + 1:columns.index("Qty") + 5],
+                         workflow.MONEY_COLUMNS)
+        self.assertEqual(data["Gross Sales"].dropna().tolist(), [12.25])
+
+
+class NameSuggestionTests(unittest.TestCase):
+    """Cheena, 2026-11-12: rename items to the Menu Items List automatically where it is safe."""
+
+    LIST = [("PANCAKES", "Apple Caramel Pancakes"), ("FLUFFY ALL DAY - ENTREES", "Eggs Benedict (Bacon)"),
+            ("DRINKS - COFFEE", "Cappuccino"), ("DRINKS - COFFEE", "Hot Chocolate"),
+            ("SIDES", "2 Eggs"), ("SIDES", "Side Stack (1 piece)"), ("PASTRIES", "Strawberry Cake"),
+            ("DRINKS - TEA", "Blueberry Matcha Latte"), ("DRINKS - TEA", "Matcha Blueberry Latte")]
+
+    def menu_list(self):
+        return workflow.MenuList(self.LIST)
+
+    def test_same_words_is_high_and_a_typo_is_medium(self):
+        menu = self.menu_list()
+        self.assertEqual(menu.suggest("Apple Caramel Pancake"), ("Apple Caramel Pancakes", workflow.HIGH_MATCH))
+        self.assertEqual(menu.suggest("Bacon Eggs Benedict"), ("Eggs Benedict (Bacon)", workflow.HIGH_MATCH))
+        self.assertEqual(menu.suggest("Cappucino"), ("Cappuccino", workflow.MEDIUM_MATCH))
+
+    def test_different_numbers_never_match_and_unknown_items_get_nothing(self):
+        menu = self.menu_list()
+        self.assertIsNone(menu.suggest("Side Stack 2 Pieces"))
+        self.assertIsNone(menu.suggest("Biscoff Coffee"))
+        self.assertIsNone(menu.suggest("Blueberry Latte Matcha"))  # two list names share these words
+
+    def mapping(self, status, choice="", item="Apple Caramel Pancake", listed=workflow.NOT_LISTED):
+        row = {c: "" for c in workflow.MAPPING_COLUMNS}
+        row.update({"Mapping ID": "a", "POS Sheet": "TOAST", "Source Group": "Pancakes",
+                    "Source Item": item, "Category": "Pancakes", "Menu": "Pancakes",
+                    "Menu group": "Pancakes", "Item": item, "Review Status": status,
+                    "Menu List Status": listed, "Menu List Section": workflow.NOT_LISTED})
+        frame = pd.DataFrame([row])
+        previous = frame.copy()
+        for column in workflow.SUGGEST_COLUMNS:
+            previous[column] = ""
+        previous["Accept Suggestion"] = choice
+        return frame, previous
+
+    def test_a_pending_high_match_is_renamed_automatically(self):
+        frame, previous = self.mapping("Pending")
+        done, changes = workflow.apply_suggestions(frame, self.menu_list(), previous)
+        row = done.iloc[0]
+        self.assertEqual((row["Item"], row["Accept Suggestion"], row["Menu List Status"], row["Menu List Section"]),
+                         ("Apple Caramel Pancakes", "Auto", workflow.CLOSE_MATCH, "PANCAKES"))
+        self.assertEqual(changes["Change"].tolist(), [workflow.SUGGESTION_APPLIED])
+
+    def test_a_reviewed_entry_is_only_suggested_until_the_reviewer_says_yes(self):
+        frame, previous = self.mapping("Approved")
+        done, changes = workflow.apply_suggestions(frame, self.menu_list(), previous)
+        self.assertEqual((done.iloc[0]["Item"], done.iloc[0]["Suggested Name"]),
+                         ("Apple Caramel Pancake", "Apple Caramel Pancakes"))
+        self.assertTrue(changes.empty)
+        frame, previous = self.mapping("Approved", choice="Yes")
+        done, changes = workflow.apply_suggestions(frame, self.menu_list(), previous)
+        self.assertEqual((done.iloc[0]["Item"], done.iloc[0]["Menu List Status"], done.iloc[0]["Menu List Section"]),
+                         ("Apple Caramel Pancakes", workflow.RENAMED, "PANCAKES"))
+
+    def test_a_section_the_reviewer_chose_is_kept_when_the_name_is_accepted(self):
+        frame, previous = self.mapping("Approved", choice="Yes")
+        frame["Menu List Section"] = "ADD-ONS"
+        done, _ = workflow.apply_suggestions(frame, self.menu_list(), previous)
+        self.assertEqual((done.iloc[0]["Item"], done.iloc[0]["Menu List Section"]),
+                         ("Apple Caramel Pancakes", "ADD-ONS"))
+
+    def test_a_count_and_its_unit_agree_with_or_without_a_space(self):
+        menu = workflow.MenuList([("SMALL BITES", "Spicy Yuzu Chicken Bites (8pcs)")])
+        self.assertEqual(menu.suggest("Spicy Yuzu Chicken Bites (8 pcs)"),
+                         ("Spicy Yuzu Chicken Bites (8pcs)", workflow.HIGH_MATCH))
+        self.assertIsNone(menu.suggest("Spicy Yuzu Chicken Bites (12 pcs)"))
+
+    def test_no_keeps_the_original_name_even_for_a_pending_high_match(self):
+        frame, previous = self.mapping("Pending", choice="No")
+        done, changes = workflow.apply_suggestions(frame, self.menu_list(), previous)
+        self.assertEqual((done.iloc[0]["Item"], done.iloc[0]["Accept Suggestion"]),
+                         ("Apple Caramel Pancake", "No"))
+        self.assertTrue(changes.empty)
+
+    def test_a_medium_match_is_never_applied_without_yes(self):
+        frame, previous = self.mapping("Pending", item="Cappucino")
+        done, _ = workflow.apply_suggestions(frame, self.menu_list(), previous)
+        self.assertEqual((done.iloc[0]["Item"], done.iloc[0]["Suggested Name"]), ("Cappucino", "Cappuccino"))
+
+    def test_an_accepted_rename_is_remembered_on_the_next_run(self):
+        frame, previous = self.mapping("Approved", choice="Yes")
+        first, _ = workflow.apply_suggestions(frame, self.menu_list(), previous)
+        again, changes = workflow.apply_suggestions(first, self.menu_list(), first)
+        self.assertEqual((again.iloc[0]["Item"], again.iloc[0]["Accept Suggestion"],
+                          again.iloc[0]["Suggested Name"]),
+                         ("Apple Caramel Pancakes", "Yes", "Apple Caramel Pancakes"))
+        self.assertTrue(changes.empty)
+
+
 class CarryOverTests(unittest.TestCase):
     """A new map run on new data keeps what a reviewer decided in the previous master."""
 
@@ -516,8 +697,19 @@ class CarryOverTests(unittest.TestCase):
 
     def test_invalid_approved_category_is_refused(self):
         previous = self.previous(**{"Category": "Desserts", "Review Status": "Approved"})
-        with self.assertRaisesRegex(ValueError, "invalid Category"):
+        with self.assertRaisesRegex(ValueError, "no valid Category"):
             workflow.carry_over(self.mapping, previous)
+
+    def test_every_approved_entry_without_a_category_is_listed_at_once(self):
+        previous = self.mapping.copy()
+        previous["Review Status"] = "Approved"
+        previous["Category"] = ""
+        with self.assertRaises(workflow.MappingError) as caught:
+            workflow.carry_over(self.mapping, previous)
+        message = str(caught.exception)
+        self.assertIn("'Signature Pancakes'", message)
+        self.assertIn("'D'", message)  # both entries, not just the first
+        self.assertIn("Excluded", message)  # and what to do about it
 
     def test_read_previous_adds_earlier_decisions_and_current_rows_win(self):
         earlier = self.previous(**{"Category": "Drinks", "Review Status": "Approved"}).iloc[[0]]

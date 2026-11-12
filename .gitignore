@@ -16,6 +16,7 @@ __pycache__/
 *.xlsx
 *.xls
 *.csv
+*.zip
 
 # Pipeline scratch and per-run logs (run_pipeline.py)
 Result/_building/

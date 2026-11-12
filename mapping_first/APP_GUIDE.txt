@@ -30,10 +30,40 @@ How to run
 
 New items
   If the file has items that have no category yet, the app builds a report marked DRAFT and tells
-  you how many items are new. Open Result\USA PMix - Menu Mapping.xlsx, sheet Menu Category, and
-  filter Review Status for Pending. Fill in the category and set Review Status to Approved for
-  each item you agree with, save, close the file, and press "Build report" again. The report is
-  final when no item is Pending.
+  you how many items are new. To finish the report:
+    1. Open Result\USA PMix - Menu Mapping.xlsx and go to the Menu Category sheet.
+    2. Filter the Review Status column for Pending.
+    3. For each item, choose a Category from the list in the Category column, then change Review
+       Status to Approved. You do not need to fill in Menu, Menu group or Item.
+    4. If you cannot place an item, change Review Status to Excluded and write the reason in
+       Review Notes. An item cannot be Approved without a Category.
+    5. Save, close Excel, and press "Build report" again.
+  The report is final when no item is Pending. If something in the file is not valid (for example
+  an Approved item with no Category), the app lists every such item in one message so you can fix
+  them all before running again.
+
+Item names and the Menu Items List
+  A leading # in a POS item name (for example #Americano) is removed in the report.
+
+  Items that are not on the Menu Items List get a suggested list name in the mapping file
+  (Result\USA PMix - Menu Mapping.xlsx, sheet Menu Category), in these columns at the end:
+    Suggested Name       the name on the Menu Items List
+    Suggested Section    the section it belongs to
+    Match Confidence     High = the same words (plural, word order, & and capitals ignored);
+                         Medium = a very similar spelling, which may be a typo or a different item
+    Accept Suggestion    your decision: Yes = use the suggested name, No = keep the original name
+  - New items with a High match are renamed automatically ("Auto" in Accept Suggestion). They are
+    listed on the Changes sheet. Set Accept Suggestion to No to keep the original name.
+  - Everything else is only a suggestion. Filter Suggested Name for non-blanks, check each line, and
+    choose Yes where it is right. The name is used the next time you press "Build report".
+  - Items you already approved are never renamed unless you choose Yes.
+  - Names whose numbers differ (for example "2 Pieces" and "(1 piece)") are never suggested.
+
+Amount columns
+  Gross Sales, Discount, Net Sales and Tax are copied into the PMIXData sheet, right after Qty, and
+  the PMIX PivotTable adds them as "Gross Sales ($)", "Discount ($)", "Net Sales ($)" and "Tax ($)"
+  next to Qty for each period. While the raw data has them blank they show as "-". Fill them with
+  numbers in the raw data (blank is fine, text is not) and they are added up in the PivotTable.
 
 If something goes wrong
   Your files are not changed. Press "Show details", then "Copy details", and send the text to

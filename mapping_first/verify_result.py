@@ -78,6 +78,10 @@ def stated_window(report):
             pd.Timestamp(stated["Inclusive end date"]))
 
 
+# Restated here rather than imported, so the audit stays independent of the workflow.
+MONEY = ["Gross Sales", "Discount", "Net Sales", "Tax"]
+
+
 def expected_rows(source, mapping_path, first, last, layout="category"):
     parts = []
     for sheet, (group, item, date) in COLUMNS.items():
@@ -88,6 +92,8 @@ def expected_rows(source, mapping_path, first, last, layout="category"):
             "id": [mapping_id(sheet, g, i) for g, i in zip(frame[group], frame[item])],
             "location": frame["Location"].astype(str).str.strip().replace(TUCKER),
             "qty": frame["Qty"].astype(int),
+            **{c: (pd.to_numeric(frame[c].replace("", 0), errors="raise").fillna(0)
+                   if c in frame else 0.0) for c in MONEY},
             "day": dates.dt.normalize(),
             "month": dates.dt.strftime("%Y-%m"),
             "week": (dates.dt.normalize() - pd.to_timedelta(dates.dt.weekday, unit="D")).dt.strftime("%Y-%m-%d"),
@@ -126,10 +132,13 @@ class Live:
         self.caches = {cache.SourceName: cache for cache in book.SlicerCaches}
 
     def totals_row(self, offset):
-        """Sum the Total row across periods: offset 0 is Qty (#), offset 1 is Qty (%)."""
+        """Sum the Total row across periods. Offset 0 is Qty (#), 1 is Qty (%), then Gross Sales,
+        Discount, Net Sales and Tax. The measures repeat once per period."""
         body = self.pivot.DataBodyRange
         last = body.Rows.Count
-        values = [body.Cells(last, c).Value for c in range(1 + offset, body.Columns.Count + 1, 2)]
+        stride = self.pivot.DataFields.Count
+        values = [body.Cells(last, c).Value
+                  for c in range(1 + offset, body.Columns.Count + 1, stride)]
         return sum(v for v in values if isinstance(v, (int, float)))
 
     def total(self):
@@ -197,6 +206,9 @@ def run_excel(rows, report, group="Category"):
             grid = by_location.PivotTables("MenuByLocation")
             everything = int(classified["qty"].sum())
             check("grand total", live.total(), everything)
+            for position, column in enumerate(MONEY, 2):
+                check(f"{column} total", round(live.totals_row(position), 2),
+                      round(float(classified[column].sum()), 2))
             check("no page fields on PMIX", pivot.PageFields.Count, 0)
             check("no page fields on By Location", grid.PageFields.Count, 0)
             check("By Location grand total", int(grid.GetPivotData("Qty (#)").Value), everything)
@@ -239,6 +251,9 @@ def run_excel(rows, report, group="Category"):
                                 & classified["group"].isin(pick_cats)
                                 & classified["month"].eq(pick_month)]
             check("several stores, categories and a month", live.total(), int(wanted["qty"].sum()))
+            for position, column in enumerate(MONEY, 2):
+                check(f"{column} total, several stores, categories and a month",
+                      round(live.totals_row(position), 2), round(float(wanted[column].sum()), 2))
             live.clear()
 
             all_weeks = sorted(classified["week"].unique())

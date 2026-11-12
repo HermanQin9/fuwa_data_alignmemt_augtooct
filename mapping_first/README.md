@@ -233,12 +233,12 @@ wins), and `Pending entry changed` (with the old values, so nothing is lost sile
 ## Windows app for Cheena
 
 `pmix_app.py` is a small window around `run_pipeline.py`: pick the Raw data file and a start and end
-date (filled from the file), press Run. `build_app.py` packages it with PyInstaller into
+date (filled from the file), press Build report. `build_app.py` packages it with PyInstaller into
 `dist/PMIX App/` (the folder is ignored by Git, because the saved mapping holds store figures):
 
 ```powershell
 # in a clean virtual environment: pandas 1.5.3, openpyxl, XlsxWriter, pywin32, pyinstaller<6.10
-python mapping_firstuild_app.py
+python mapping_first\build_app.py
 ```
 
 - The folder holds the `.exe`, `Menu Items List.xlsx`, `Menu Category reference.xlsx` (only the
@@ -250,6 +250,23 @@ python mapping_firstuild_app.py
   (about 15-20 minutes for a quarter), so Excel for Windows is required.
 - Input format, confirmed by Cheena on 2026-11-11: sheets `TOAST` and `SQUARE`, the same columns as
   `USA PMix.xlsx`, plus `Gross Sales`, `Discount`, `Net Sales` and `Tax` (blank) right after `Qty`.
+- Amount columns (Cheena, 2026-11-12): `Gross Sales`, `Discount`, `Net Sales` and `Tax` go into the
+  PMIXData sheet after `Qty` and into the PMIX PivotTable as `... ($)` measures per period; the By
+  Location table stays Qty only. Blank cells are fine; text is refused with a plain message.
+- Item names lose a leading `#` (`clean_item_name`). `complete_names` gives a categorized entry a
+  Menu (the Category) and Menu group (the source group) when they are blank, so a reviewer only has to
+  choose a Category. Every problem in a mapping is reported at once (`MappingError`), in plain words.
+- Name suggestions (Cheena, 2026-11-12): `apply_suggestions` adds `Suggested Name`, `Suggested Section`,
+  `Match Confidence` and `Accept Suggestion` to the mapping for every item that is not on the Menu
+  Items List (`MenuList.suggest`). High = same words after ignoring case, accents, punctuation, `&`,
+  plurals and word order; Medium = at least 90% similar spelling. Numbers must agree, and a name
+  shared by two list entries is never suggested. A High match on a Pending entry is renamed at
+  once (`Auto`, status `Close match - review`); `Yes` renames any entry (status `Renamed by review`,
+  section reset to the list's); `No` keeps the name. A reviewed entry is never renamed without `Yes`.
+  Renames are listed on the `Changes` sheet. Checked on the 2026-11 data: 159 High, about 150
+  Medium; the Medium ones include real mismatches, so they stay suggestions.
+- The slicers on the PMIX sheet sit in a band above the table (the table starts at row 22), so a
+  longer period (more quarters) or more measures never covers them or pushes them out of view.
   `Sent Date` is date and time and `Sent Date - Copy` is its time part. SQUARE may have only the
   header row. The columns are read by name, and the blank ones are kept in the report's data sheets.
 - `PMIX Report Builder.exe --headless <raw data> <start> <end>` runs without a window and writes
